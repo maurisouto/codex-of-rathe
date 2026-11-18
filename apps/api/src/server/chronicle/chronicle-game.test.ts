@@ -67,6 +67,21 @@ describe("Chronicle progression", () => {
     expect(() => act(miss, "next")).toThrow("no next level");
   });
 
+  it("rejects stale abandon after advancing and allows idempotent current-round cleanup", () => {
+    const { game, act, answer } = fixture();
+    const first = act(game.start("streak"), "ready");
+    const cleared = act(first, "submit", answer(first));
+    const second = act(cleared, "next");
+    expect(() => game.act(first.runId, { action: "abandon", roundId: first.roundId }))
+      .toThrow("This round is no longer active.");
+    expect(act(second, "ready").level).toBe(2);
+
+    const cleanup = { action: "abandon", roundId: second.roundId } as const;
+    expect(game.act(second.runId, cleanup)).toEqual({ ok: true });
+    expect(game.act(second.runId, cleanup)).toEqual({ ok: true });
+    expect(() => act(second, "ready")).toThrow("no longer available");
+  });
+
   it("fails closed before starting a Streak run with insufficient dates, even with extra cards", () => {
     const { game } = fixture(entries.map((row, i) => ({ ...row, date: entries[i % 7].date })));
     expect(() => game.start("streak")).toThrow("enough verified illustrations");

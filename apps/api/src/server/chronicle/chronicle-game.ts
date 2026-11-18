@@ -196,12 +196,9 @@ export function createChronicleGame(
   function act(runId: string, request: ChronicleAction) {
     const time = now();
     const run = runs.get(runId);
-    if (request.action === "abandon") {
-      runs.delete(runId);
-      return { ok: true } as const;
-    }
     if (!run || run.expiresAt <= time) {
       runs.delete(runId);
+      if (request.action === "abandon") return { ok: true } as const;
       throw new ChronicleError(404, "This run is no longer available. Start a new round.");
     }
     const round = currentRound(run);
@@ -210,6 +207,10 @@ export function createChronicleGame(
         return snapshot(run, time);
       }
       throw new ChronicleError(409, "This round is no longer active.");
+    }
+    if (request.action === "abandon") {
+      runs.delete(runId);
+      return { ok: true } as const;
     }
     run.expiresAt = time + ttlMs;
     if (request.action === "next") {

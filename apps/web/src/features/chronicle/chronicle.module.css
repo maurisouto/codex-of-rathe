@@ -1,0 +1,269 @@
+.chronicle {
+  --ink: #fff1dc;
+  --subtle: #d5c2ae;
+  --copper: #efba8d;
+  --line: #775747;
+  --panel: #241e1c;
+  --card: #191617;
+  width: min(100%, 70rem);
+  margin: 0 auto 2rem;
+  padding: clamp(0.75rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: radial-gradient(ellipse at 50% 0, #36251f 0, #181516 42rem);
+  color: var(--ink);
+  color-scheme: dark;
+}
+
+.chronicle h1,
+.chronicle h2,
+.chronicle h3,
+.chronicle legend {
+  font-family: Georgia, serif;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.chronicle h1 { font-size: clamp(2rem, 7vw, 4.7rem); }
+.chronicle h2,
+.chronicle legend { font-size: clamp(1.6rem, 4vw, 2.35rem); }
+.chronicle h3 { font-size: 1.25rem; }
+.chronicle p,
+.chronicle small,
+.chronicle dd { color: var(--subtle); }
+.chronicle a { color: var(--copper); text-underline-offset: 0.25em; }
+.chronicle a:hover { text-decoration: underline; }
+.chronicle :focus-visible { outline: 2px solid #fff3c9; outline-offset: 3px; }
+.chronicle section { scroll-margin-top: 1rem; }
+.chronicle section + section { margin-top: clamp(1.25rem, 3vw, 2rem); }
+
+.nav,
+.nav > div,
+.actions,
+.roundHeader,
+.axis {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nav {
+  margin-bottom: 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+.nav a { display: inline-flex; align-items: center; min-height: 44px; }
+
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: grid;
+  min-height: clamp(13rem, 35vw, 19rem);
+  align-content: center;
+  padding: clamp(1.125rem, 5vw, 3.5rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #201719;
+  margin-bottom: clamp(1.25rem, 3vw, 2rem);
+}
+.hero img { z-index: -2; object-fit: cover; object-position: center 46%; }
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, #211719f5, #211719e8 38%, #21171937 100%);
+}
+.hero p { max-width: 31rem; margin-top: 0.8rem; color: var(--ink); }
+
+.panel {
+  padding: clamp(0.75rem, 3vw, 1.65rem);
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background: var(--panel);
+}
+.panel > p + p { margin-top: 0.35rem; }
+
+.modes,
+.guideGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.chronicle legend { margin-bottom: 1rem; }
+.mode {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+.mode:has(:checked) { border-color: var(--copper); background: #392820; }
+.mode input { accent-color: var(--copper); }
+.mode span { color: var(--subtle); }
+
+.chronicle button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  padding: 0.35rem 0.65rem;
+  color: var(--ink);
+  background: #342923;
+  cursor: pointer;
+}
+.chronicle button:hover:not(:disabled, [aria-disabled="true"]) { border-color: var(--copper); }
+.chronicle button:disabled,
+.chronicle button[aria-disabled="true"] { opacity: 0.6; cursor: default; }
+.chronicle button.primary {
+  background: var(--copper);
+  border-color: var(--copper);
+  color: #21150f;
+  font-weight: 700;
+}
+.actions { margin-top: 1.1rem; }
+.roundHeader { margin-bottom: 0.85rem; }
+.roundHeader h1 { font-size: clamp(1.8rem, 5vw, 2.8rem); }
+.clock,
+.card time,
+.guideNote { color: var(--copper); font-weight: 700; }
+.clock { font-variant-numeric: tabular-nums; }
+
+.axis {
+  margin: 0.85rem 0;
+  gap: 0.5rem;
+  color: var(--copper);
+  font-size: 0.875rem;
+}
+.axis i { flex: 1; height: 1px; background: var(--line); }
+.mobileAxis { display: none; }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(var(--card-count), minmax(0, 1fr));
+  gap: clamp(0.35rem, 1vw, 0.65rem);
+  padding: 0;
+  list-style: none;
+}
+.card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: clamp(0.32rem, 0.8vw, 0.65rem);
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+.card h2 { font-size: clamp(1rem, 1.6vw, 1.2rem); }
+.card p,
+.card time { font-size: 0.82rem; }
+.card small { font-size: 0.76rem; }
+
+.card img,
+.imageFallback {
+  display: block;
+  width: 100%;
+  border-radius: 0.28rem;
+  height: auto;
+}
+.crop { aspect-ratio: 240 / 189; object-fit: cover; }
+.fullArt { aspect-ratio: 5 / 7; object-fit: contain; }
+.card .imageFallback {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 5 / 7;
+  background: #332826;
+  text-align: center;
+  padding: 0.3rem;
+}
+
+.moves { display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: auto; }
+.moves button { flex: 1; padding-inline: 0.25rem; font-size: 0.75rem; }
+.ready { margin-top: 0.6rem; }
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #d59679;
+  border-radius: 0.6rem;
+  background: #381e17;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.guideGrid { margin-top: 0.9rem; list-style: none; padding: 0; }
+.guidePanel,
+.guideModes > div {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: var(--panel);
+}
+.guideScene { padding: 0.5rem; border-radius: 0.45rem; background: var(--card); }
+.guidePanel h3 { margin: 0.65rem 0 0.25rem; }
+.guideCards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0;
+  list-style: none;
+}
+.guideCards li { min-width: 0; font-size: 0.68rem; line-height: 1.3; overflow-wrap: anywhere; }
+.guideCards img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 496 / 382;
+  object-fit: cover;
+  margin-bottom: 0.25rem;
+  border-radius: 0.25rem;
+}
+.guideCards .highlight img { outline: 1px solid var(--copper); }
+.guideCards time { display: block; color: var(--copper); }
+.guideAxis {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+  font-size: 0.68rem;
+  color: var(--copper);
+}
+.guideScene .guideNote { margin-top: 0.3rem; color: var(--copper); font-size: 0.73rem; }
+.guideModes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+.guideModes dt { font-weight: 700; }
+.faq { border-bottom: 1px solid var(--line); }
+.faq summary { padding-block: 0.65rem; min-height: 44px; cursor: pointer; }
+.faq p { padding-bottom: 0.8rem; }
+
+@media (max-width: 760px) {
+  .modes,
+  .guideGrid { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mobileAxis { display: block; flex-basis: 100%; color: var(--subtle); }
+  .hero::before { background: linear-gradient(90deg, #211719f0, #21171987); }
+}
+
+@media (max-width: 430px) {
+  .guideModes { grid-template-columns: 1fr; }
+}
