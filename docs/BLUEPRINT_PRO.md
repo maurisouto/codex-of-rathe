@@ -1,372 +1,370 @@
 # GUESS A CARD, ANY CARD — BLUEPRINT PRO
 
-## 0. Documento
-Versión: PRO v1  
-Estado: aprobado para implementación  
-Rol de referencia: Senior Project Lead  
-Objetivo: convertir la visión del producto en una guía ejecutable para Cursor y para desarrollo iterativo real.
+## 0. Document
+Version: PRO v1\
+Status: approved for implementation\
+Reference role: Senior Project Lead\
+Purpose: turn the product vision into an actionable guide for Cursor and iterative development.
 
-## 0.1 Arquitectura actual (catálogo en runtime, 2026)
+## 0.1 Current architecture (runtime catalog, 2026)
 
-Implementación vigente en este monorepo:
+Current implementation in this monorepo:
 
-- **Fuente canónica de cartas:** paquete **`@flesh-and-blood/cards`** (printings oficiales).
-- **Catálogo en API:** filtrado y cargado **en memoria al arranque** del servidor; los **sets disponibles** salen de ese catálogo.
-- **Nueva partida:** se elige una **carta al azar** del catálogo (filtros por set en lobby); no hay filas `Puzzle` / `PuzzleStep` ni `puzzleId` en el flujo.
-- **Persistencia:** cada `Game` guarda un **snapshot** (`cardId`, `cardName`, `cardSet`, `cardImageUrl`, `revealSeed`, `revealCardKind`, `cardTemplateKey`) para reveal y guesses **deterministas** sin joins a tablas de contenido.
-- **Motor de reveal:** planes y pasos se calculan en runtime (shared package + seed); mismo seed ⇒ mismo plan.
-- **Admin:** **no** forma parte del gameplay ni de esta base de datos por ahora.
-- **Stats por carta:** `user_card_stats` usa **`cardId`** (id de catálogo), no puzzle.
+- **Canonical card source:** the **`@flesh-and-blood/cards`** package (official printings).
+- **API catalog:** the server filters and loads the catalog **into memory at startup**. The **available sets** come from that catalog.
+- **New game:** the server chooses a **random card** from the catalog (with lobby set filters). The flow has no `Puzzle` or `PuzzleStep` rows and no `puzzleId`.
+- **Persistence:** each `Game` stores a **snapshot** (`cardId`, `cardName`, `cardSet`, `cardImageUrl`, `revealSeed`, `revealCardKind`, `cardTemplateKey`) for **deterministic** reveals and guesses without joins to content tables.
+- **Reveal engine:** plans and steps are calculated at runtime (shared package and seed). The same seed produces the same plan.
+- **Admin:** the admin is currently outside gameplay and this database.
+- **Per-card stats:** `user_card_stats` uses **`cardId`** (catalog ID).
 
-Secciones históricas del documento que hablan de “puzzle DB” o admin compartiendo Supabase describen un diseño anterior; la **§0.1** prevalece para implementación.
+Historical sections that mention a “puzzle DB” or an admin sharing Supabase describe an earlier design. **§0.1** takes precedence for implementation.
 
 ---
 
 # 1. PRODUCT VISION
 
 ## 1.1 Elevator pitch
-**Guess a Card, Any Card** es un party game online inspirado en Flesh and Blood donde una carta comienza altamente ofuscada y se va revelando paso a paso.  
-El jugador —o un grupo de jugadores— debe adivinarla antes de quedarse sin intentos.
+**Guess a Card, Any Card** is an online party game inspired by Flesh and Blood. A heavily obscured card is gradually revealed.\
+The player or group must guess the card before running out of attempts.
 
-El juego debe sentirse:
-- divertido
-- rápido de entender
-- satisfactorio al acertar
-- visualmente atractivo para compartir, streamear y jugar entre amigos
-- usable tanto en desktop como en mobile
+The game should feel:
+- fun
+- easy to learn
+- satisfying when you guess correctly
+- visually engaging for sharing, streaming, and playing with friends
+- usable on desktop and mobile
 
-## 1.2 Objetivo de negocio / producto
-Construir primero una experiencia sólida de **single player**, y luego expandir a:
+## 1.2 Business and product objective
+Build a strong **single-player** experience first, then expand to:
 - competitive multiplayer
 - cooperative multiplayer
 - challenge a friend
 
-## 1.3 Público objetivo
-Primario:
-- jugadores de Flesh and Blood
-- comunidades locales
-- amigos que ya conocen parcialmente el juego
+## 1.3 Target audience
+Primary:
+- Flesh and Blood players
+- local communities
+- friends already somewhat familiar with the game
 
-Secundario:
+Secondary:
 - streamers
-- creadores de contenido
-- grupos que quieren un ice breaker relacionado a FaB
+- content creators
+- groups looking for a FaB-related icebreaker
 
-## 1.4 Requisitos de acceso
-- jugar como invitado debe ser posible
-- registrarse debe ser opcional
-- usuarios registrados pueden guardar estadísticas y perfil
-- login inicial: OAuth Google o Discord
+## 1.4 Access requirements
+- guest play must be available
+- registration must be optional
+- registered users can save their stats and profile
+- initial sign-in: Google or Discord OAuth
 
 ---
 
 # 2. PRODUCT PRINCIPLES
 
-## 2.1 Principios
-1. **La carta es el centro de la experiencia.**
-2. **Cada step debe aumentar tensión y claridad.**
-3. **La UX debe sentirse rápida y limpia.**
-4. **Single player debe funcionar perfecto antes de escalar multiplayer.**
-5. **El Game App no autoría contenido de cartas; consume el catálogo oficial y persiste snapshots por partida.**
-6. **El sistema debe ser extensible a datasets futuros, pero sin contaminar el MVP actual.**
+## 2.1 Principles
+1. **The card is the focus of the experience.**
+2. **Each step must build tension and make the card clearer.**
+3. **The UX should feel fast and uncluttered.**
+4. **Single player must work reliably before expanding multiplayer.**
+5. **The game app consumes the official catalog and stores game snapshots. Card authoring is outside its scope.**
+6. **The system should support future datasets while keeping the current MVP focused.**
 
-## 2.2 No objetivos iniciales
-- no crear chat interno
-- no crear editor de cartas / datasets custom en el game app en esta fase
-- no permitir custom datasets en esta fase
-- no construir ranking global complejo en el MVP
-- no complicar el flujo con demasiadas opciones al inicio
+## 2.2 Initial non-goals
+- in-app chat
+- a card or custom dataset editor in the game app at this stage
+- custom dataset support at this stage
+- a complex global leaderboard in the MVP
+- a setup flow with too many choices up front
 
 ---
 
 # 3. MODES OF PLAY
 
 ## 3.1 Single Player
-### Descripción
-Un jugador ve una carta ofuscada y tiene **1 guess por step**.  
-Si falla, se revela el step siguiente.  
-Si acierta, gana.  
-Si llega al step final sin acertar, pierde.
+### Description
+A player sees an obscured card and gets **1 guess per step**.\
+A wrong guess triggers the next reveal step.\
+A correct guess wins the game.\
+The player loses if they run out of steps without a correct guess.
 
-### Objetivos del modo
-- ser el primer modo en producción
-- validar UX del reveal de carta (viewer principal)
-- validar autocomplete
-- validar tracking de intentos y tiempo
-- validar estadísticas personales
+### Mode objectives
+- be the first mode in production
+- validate the card reveal UX (main viewer)
+- validate autocomplete
+- validate attempt and time tracking
+- validate personal stats
 
-### Reglas
-- 1 guess por step
-- sin timer obligatorio visible
-- fin inmediato al acertar
-- derrota al agotar todos los steps
+### Rules
+- 1 guess per step
+- no required visible timer
+- the game ends immediately on a correct guess
+- using all steps without a correct guess ends in a loss
 
-### Persistencia
-Invitado:
-- storage local básico opcional
+### Persistence
+Guest:
+- optional basic local storage
 
-Registrado:
-- stats persistidas en DB
+Registered user:
+- stats stored in the database
 
 ---
 
 ## 3.2 Competitive Multiplayer
-### Descripción
-Todos los jugadores ven la **misma carta** y el **mismo step** al mismo tiempo.
+### Description
+All players see the **same card** and the **same step** at the same time.
 
-Cada jugador:
-- tiene su propio input
-- hace su guess a su ritmo durante el step actual
-- no ve el siguiente step hasta que todos hayan enviado su guess o expire el timer
+Each player:
+- has their own input
+- guesses at their own pace during the current step
+- sees the next step once all players have submitted a guess or the timer expires
 
-### Condición de victoria
-1. gana quien acierta en **menos intentos**
-2. si empatan en intentos, gana quien usó **menos tiempo total**
+### Win condition
+1. The winner is the player who guesses correctly in the **fewest attempts**.
+2. If attempts are tied, the winner is the player with the **shortest total time**.
 
-### Reglas
-- 1 guess por step
-- timer por step configurable por el host
-- el step avanza cuando:
-  - todos enviaron guess, o
-  - expira el timer
-- quien acierta puede quedar “locked as solved”, pero sigue esperando el cierre del step grupal
-- al finalizar, se muestra historial comparativo de guesses y tiempos
+### Rules
+- 1 guess per step
+- per-step timer configurable by the host
+- the step advances when:
+  - everyone has submitted a guess, or
+  - the timer expires
+- a player who guesses correctly may be locked as solved until the group finishes the step
+- the results show a comparison of guess histories and times
 
-### Nota de diseño
-El multiplayer competitivo no es una carrera de “primero en apretar enter”; es una carrera de:
-- menos intentos
-- mejor tiempo total
+### Design note
+Competitive multiplayer ranks players by attempts and total time. The first submission alone does not decide the winner.
 
 ---
 
 ## 3.3 Cooperative Multiplayer
-### Descripción
-Todos ven la misma carta y pueden conversar externamente.  
-Solo **una persona por step** tiene el derecho de enviar el guess del equipo.
+### Description
+Everyone sees the same card and can talk outside the app.\
+Only **one person per step** can submit the team's guess.
 
-### Reglas
-- orden aleatorio pero fijo definido al iniciar partida
-- cada step corresponde a un jugador activo
-- si falla, se revela siguiente step y el turno pasa al siguiente jugador
-- si alguien se desconecta, el host puede ingresar el guess del equipo
-- sin chat interno
+### Rules
+- randomized turn order set at game start and fixed thereafter
+- each step has one active player
+- a wrong guess triggers the next reveal step and passes the turn to the next player
+- if someone disconnects, the host can enter the team's guess
+- no in-app chat
 
-### Condición de victoria
-El equipo gana si acierta antes de agotar steps.
+### Win condition
+The team wins if it guesses correctly before running out of steps.
 
-### Condición de derrota
-El equipo pierde si consume todos los steps sin acertar.
+### Loss condition
+The team loses if it uses every step without a correct guess.
 
 ---
 
 ## 3.4 Challenge a Friend
-### Descripción
-Modo social / asimétrico.
-El host elige una carta específica y desafía a otra persona a adivinarla.
+### Description
+An asymmetric social mode.
+The host chooses a specific card and challenges someone else to guess it.
 
-### Casos de uso
-- mismo dispositivo
-- compartir link
-- contenido para amigos / streams / bromas entre jugadores
+### Use cases
+- same device
+- shareable link
+- content for friends, streams, or jokes between players
 
-### Reglas base
-- host puede filtrar por set y seleccionar carta específica
-- el challenge usa la misma carta elegida (snapshot / reveal que single player)
-- el desafiante juega con mismas reglas de single player
+### Basic rules
+- the host can filter by set and select a specific card
+- the challenge uses the selected card with the same snapshot and reveal as single player
+- the player taking the challenge follows the single-player rules
 
-### Estado recomendado
-No MVP inicial. Diseñar la arquitectura ahora, implementar después de single player estable.
+### Recommended status
+Design the architecture now and implement it after single player is stable, beyond the initial MVP.
 
 ---
 
 # 4. CARD CATALOG & REVEAL (runtime)
 
-## 4.1 Fuente de verdad de cartas
-- **Paquete:** `@flesh-and-blood/cards` (printings oficiales).
-- **Catálogo jugable:** el API filtra y mantiene una estructura en memoria **al iniciar el proceso**. Si el catálogo no carga, **no hay gameplay** hasta corregir el arranque o la dependencia.
+## 4.1 Card source of truth
+- **Package:** `@flesh-and-blood/cards` (official printings).
+- **Playable catalog:** the API filters and keeps an in-memory catalog **at process startup**. A catalog load failure blocks gameplay until startup or the dependency is fixed.
 
-## 4.2 Qué hace el game app
-- Expone **sets** derivados del catálogo (lobby).
-- Al crear partida: **elige una carta al azar** del pool (respetando filtros de set).
-- Escribe en `games` un **snapshot** completo para esa partida (ver §12).
-- Calcula el **plan de reveal** de forma **determinista** a partir de `revealSeed`, `revealCardKind` y `cardTemplateKey` (misma lógica cliente/servidor vía `@gac/shared/reveal`).
-- Registra guesses, resultados y stats; **no** depende de tablas `Puzzle` / `PuzzleStep`.
+## 4.2 Game app responsibilities
+- Exposes **sets** derived from the catalog in the lobby.
+- Chooses a **random card** from the pool when creating a game, applying any set filters.
+- Writes a complete **snapshot** for the game in `games` (see §12).
+- Calculates the **reveal plan deterministically** from `revealSeed`, `revealCardKind`, and `cardTemplateKey`. The client and server share the same logic through `@gac/shared/reveal`.
+- Logs guesses, results, and stats independently of `Puzzle` and `PuzzleStep` tables.
 
-## 4.3 Qué no hace el game app (MVP actual)
-- No edita el dataset oficial de FaB en runtime.
-- No almacena imágenes pre-generadas por step en DB; el cliente compone overlays desde arte + plan.
+## 4.3 Game app exclusions (current MVP)
+- Runtime editing of the official FaB dataset.
+- Database storage for pregenerated images per step. The client composes overlays from the art and reveal plan.
 
-## 4.4 Modelo conceptual por partida (snapshot)
-Los campos persistidos en `games` incluyen al menos:
-- `cardId` — id estable de impresión en el catálogo
+## 4.4 Conceptual model per game (snapshot)
+Fields stored in `games` include at least:
+- `cardId` — stable catalog printing ID
 - `cardName`, `cardSet`, `cardImageUrl`
-- `revealSeed` — entropía del plan de velos
-- `revealCardKind`, `cardTemplateKey` — clasificación para el motor de zonas
+- `revealSeed` — entropy for the overlay plan
+- `revealCardKind`, `cardTemplateKey` — classification for the zone engine
 
-## 4.5 Selección y variedad
-- Host / jugador elige uno o más **sets** (códigos alineados al catálogo).
-- Se sortea una carta del unión de esos sets (con reglas de filtrado del servicio).
-- Anti-repetición fuerte por host es **opcional / futuro**; no requiere `HostPuzzleHistory`.
+## 4.5 Selection and variety
+- The host or player chooses one or more **sets** using catalog set codes.
+- The game draws a random card from the union of those sets, applying the service's filtering rules.
+- Strong per-host repeat prevention is **optional future work**. It can be implemented without `HostPuzzleHistory`.
 
 ---
 
 # 5. USER JOURNEYS
 
 ## 5.1 Single Player Journey
-1. usuario entra al home
-2. elige single player
-3. selecciona sets permitidos
-4. inicia partida
-5. ve countdown corto opcional
-6. step 1 aparece
-7. escribe guess con autocomplete
-8. envía guess
-9. si falla, step 2
-10. repite hasta acertar o perder
-11. ve pantalla final con:
-   - resultado
-   - carta completa
-   - historial de guesses
-   - tiempo total
-   - intentos
-   - CTA para jugar de nuevo
+1. The user opens the home page.
+2. They choose single player.
+3. They select eligible sets.
+4. They start the game.
+5. An optional short countdown appears.
+6. Step 1 appears.
+7. They enter a guess with autocomplete.
+8. They submit their guess.
+9. A wrong guess advances to step 2.
+10. They repeat until they guess correctly or lose.
+11. The results screen shows:
+   - outcome
+   - fully revealed card
+   - guess history
+   - total time
+   - attempts
+   - play again CTA
 
 ## 5.2 Competitive Journey
-1. host crea room
-2. selecciona sets
-3. define timer por step
-4. comparte link
-5. jugadores se unen
-6. eligen avatar o se asigna aleatorio
-7. host inicia
-8. countdown
-9. step actual para todos
-10. cada uno envía guess
-11. cuando todos enviaron o expira timer → siguiente step
-12. al finalizar se muestra ranking de la partida
+1. The host creates a room.
+2. The host selects sets.
+3. The host sets the per-step timer.
+4. The host shares a link.
+5. Players join.
+6. Players choose an avatar or receive a random one.
+7. The host starts the game.
+8. A countdown appears.
+9. Everyone sees the current step.
+10. Each player submits a guess.
+11. When everyone has submitted or the timer expires, the game advances to the next step.
+12. The game displays its final rankings.
 
 ## 5.3 Cooperative Journey
-1. host crea room
-2. selecciona sets
-3. jugadores se unen
-4. avatares
-5. host inicia
-6. se define orden aleatorio
-7. countdown
-8. cada step muestra claramente quién tiene el turno
-9. jugador activo envía guess
-10. si falla, pasa al siguiente jugador
-11. pantalla final con historial del equipo
+1. The host creates a room.
+2. The host selects sets.
+3. Players join.
+4. Players get avatars.
+5. The host starts the game.
+6. The game randomizes turn order.
+7. A countdown appears.
+8. Each step clearly shows whose turn it is.
+9. The active player submits a guess.
+10. A wrong guess passes the turn to the next player.
+11. The results screen displays the team's guess history.
 
 ## 5.4 Challenge Journey
-1. host crea challenge
-2. filtra por set
-3. elige carta
-4. genera link o juega en mismo dispositivo
-5. friend intenta adivinar
-6. se muestra resultado final
+1. The host creates a challenge.
+2. The host filters by set.
+3. The host chooses a card.
+4. The host generates a link or plays on the same device.
+5. The friend tries to guess the card.
+6. The game displays the result.
 
 ---
 
 # 6. UX BLUEPRINT
 
-## 6.1 Objetivos UX
-- entender inmediatamente qué hacer
-- minimizar fricción de input
-- hacer que cada reveal sea emocionante
-- mantener la carta como foco
-- no saturar mobile
-- ser visualmente atractivo para stream
+## 6.1 UX objectives
+- make the next action immediately clear
+- minimize input friction
+- make each reveal exciting
+- keep the focus on the card
+- keep mobile layouts uncluttered
+- make the game visually engaging on streams
 
-## 6.2 Información siempre visible durante partida
-### Obligatoria
-- arte de la carta / estado de reveal actual
-- step actual / total
-- intentos usados
-- intentos restantes
-- input de guess
-- botón de enviar
-- estado del resultado del último intento
+## 6.2 Information always visible during play
+### Required
+- card art and current reveal state
+- current step and total steps
+- attempts used
+- attempts remaining
+- guess input
+- submit button
+- outcome of the last attempt
 
-### Según modo
+### Mode-specific
 Single:
-- progreso personal
+- personal progress
 
 Competitive:
-- lista de jugadores
-- quién ya envió guess y quién no
-- tiempo restante del step
+- player list
+- who has submitted a guess and who is still pending
+- time left in the current step
 
 Coop:
-- jugador activo del turno
-- orden de turnos
-- host controls mínimos
+- active player
+- turn order
+- essential host controls
 
-## 6.3 Resultado final
-Debe incluir:
-- carta completa
-- nombre correcto
+## 6.3 Final result
+Include:
+- fully revealed card
+- correct name
 - set
-- historial de guesses
-- tiempos
-- CTA replay
-- CTA volver al home
-- en multi: resumen por jugador / equipo
+- guess history
+- times
+- replay CTA
+- return home CTA
+- player or team summary in multiplayer
 
 ---
 
 # 7. VISUAL DIRECTION
 
-## 7.1 Estilo
-- inspirado en Flesh and Blood
+## 7.1 Style
+- inspired by Flesh and Blood
 - dark fantasy
 - streamer-friendly
-- limpio y legible
-- alto contraste
+- clean and legible
+- high contrast
 
-## 7.2 Nombre del producto
+## 7.2 Product name
 **Guess a Card, Any Card**
 
 ## 7.3 Logo direction
-Inspiración conceptual:
-- referencia indirecta a “Pick a Card, Any Card”
-- sensación de truco / conocimiento / adivinación
-- posible combinación de:
-  - carta
-  - ojo / visión
-  - destello mágico
-  - marco ornamental oscuro
+Conceptual inspiration:
+- indirect reference to “Pick a Card, Any Card”
+- a sense of magic tricks, knowledge, or divination
+- possible combination of:
+  - card
+  - eye or vision
+  - magical flash
+  - dark ornamental frame
 
-## 7.4 Avatares
-Preferencia:
-- héroes o artes de cartas FaB
-- si no hay selección manual, asignación aleatoria
+## 7.4 Avatars
+Preferences:
+- FaB heroes or card art
+- random assignment when a player skips manual selection
 
 ---
 
 # 8. ANIMATION & SOUND
 
-## 8.1 Animaciones requeridas
-- transición entre steps: **slide**
-- feedback de win
-- feedback de lose
-- reveal final de la carta
+## 8.1 Required animations
+- **slide** transition between steps
+- win feedback
+- loss feedback
+- final card reveal
 
-## 8.2 Criterio
-- suaves
-- rápidas
-- no pesadas
-- compatibles con mobile
+## 8.2 Criteria
+- smooth
+- fast
+- lightweight
+- mobile-compatible
 
-## 8.3 Sonidos
+## 8.3 Sounds
 - submit guess
 - correct guess
 - wrong guess
-- next step / reveal
+- next step or reveal
 
-## 8.4 Restricción
-- volumen tranquilo
-- no hace falta control de volumen en MVP
+## 8.4 Constraints
+- low volume
+- volume control is optional for the MVP
 
 ---
 
@@ -375,31 +373,31 @@ Preferencia:
 ## 9.1 Stack
 - Frontend: Next.js
 - Backend: Hono
-- Real-time: WebSockets nativos
-- Database: PostgreSQL (p. ej. Supabase)
+- Real-time: native WebSockets
+- Database: PostgreSQL (e.g. Supabase)
 - ORM: Prisma
-- Auth: Supabase Auth con OAuth Google / Discord
-- Cartas: `@flesh-and-blood/cards` + catálogo en memoria en el API; arte vía URLs resueltas en servidor
+- Auth: Supabase Auth with Google or Discord OAuth
+- Cards: `@flesh-and-blood/cards` and an in-memory API catalog. The server resolves the URLs for card art.
 
-## 9.2 Repositorio
-Monorepo del **game app** (web + API + `packages/shared`). No hay admin acoplado a este flujo.
+## 9.2 Repository
+Monorepo for the **game app** (web, API, and `packages/shared`). The admin is outside this flow.
 
-## 9.3 Arquitectura lógica
-### Capas
+## 9.3 Logical architecture
+### Layers
 1. Presentation Layer
 2. Game State Layer
 3. Real-time Transport Layer
 4. Persistence Layer
-5. **Card catalog & reveal** (runtime + snapshot en DB)
+5. **Card catalog and reveal** (runtime and database snapshots)
 6. Auth/Profile Layer
 
-## 9.4 Principio técnico
-Separar claramente:
-- lógica de UI
-- lógica de estado de partida
-- lógica de transporte WS
-- persistencia
-- **carga del catálogo y resolución de carta / reveal**
+## 9.4 Technical principle
+Keep these responsibilities separate:
+- UI logic
+- game state logic
+- WebSocket transport logic
+- persistence
+- **catalog loading, card resolution, and reveal**
 
 ---
 
@@ -479,36 +477,36 @@ Separar claramente:
 - GuestSession
 - Room
 - RoomPlayer
-- Game (partida con **snapshot de carta** en DB)
+- Game (game with a **card snapshot** in the database)
 - GamePlayer
 - Guess
-- UserStat / UserCardStat (por **`cardId`**)
+- UserStat / UserCardStat (by **`cardId`**)
 - Achievement
 
 ## 11.2 Conceptual responsibilities
 ### User
-Autenticación y perfil persistente.
+Authentication and a persistent profile.
 
 ### GuestSession
-Identidad liviana no persistente o semi-persistente para invitados.
+Lightweight, nonpersistent or semipersistent guest identity.
 
 ### Room
-Contenedor de pre-game y de multiplayer live session.
+Container for the pregame lobby and live multiplayer session.
 
 ### Game
-Instancia de partida; referencia una carta vía **campos snapshot** (`cardId`, nombre, set, arte, seed, kind, template) — no FK a tablas de “puzzle”.
+A game instance references a card through **snapshot fields** (`cardId`, name, set, art, seed, kind, and template) without a foreign key to puzzle tables.
 
 ### Guess
-Registro de intento por jugador y step.
+Record of an attempt by player and step.
 
 ### UserCardStat
-Agregados por **`userId` + `cardId`** (catálogo), no por puzzle legacy.
+Aggregates by **`userId` + `cardId`** from the catalog, independent of legacy puzzles.
 
 ---
 
 # 12. DATABASE DESIGN (PRO)
 
-## 12.1 Tabla `users`
+## 12.1 `users` table
 ```sql
 id uuid pk
 display_name text not null
@@ -519,7 +517,7 @@ created_at timestamptz not null default now()
 updated_at timestamptz not null default now()
 ```
 
-## 12.2 Tabla `profiles`
+## 12.2 `profiles` table
 ```sql
 user_id uuid pk references users(id)
 preferred_avatar_id text null
@@ -528,11 +526,11 @@ created_at timestamptz not null default now()
 updated_at timestamptz not null default now()
 ```
 
-## 12.3 Catálogo de cartas (runtime)
+## 12.3 Card catalog (runtime)
 
-No hay tabla `puzzles` / `puzzle_steps` en el modelo actual. El listado jugable vive en memoria a partir de **`@flesh-and-blood/cards`**. Un redeploy reinicia el proceso y **refresca** el catálogo.
+The current model has no `puzzles` or `puzzle_steps` tables. The playable catalog is held in memory and comes from **`@flesh-and-blood/cards`**. Redeploying restarts the process and **refreshes** the catalog.
 
-## 12.4 Tabla `rooms`
+## 12.4 `rooms` table
 ```sql
 id uuid pk
 host_user_id uuid null references users(id)
@@ -546,7 +544,7 @@ created_at timestamptz not null default now()
 updated_at timestamptz not null default now()
 ```
 
-## 12.5 Tabla `room_players`
+## 12.5 `room_players` table
 ```sql
 id uuid pk
 room_id uuid not null references rooms(id) on delete cascade
@@ -561,12 +559,12 @@ left_at timestamptz null
 is_connected boolean not null default true
 ```
 
-## 12.6 Tabla `games`
+## 12.6 `games` table
 ```sql
 id uuid pk
 room_id uuid null references rooms(id) on delete set null
 mode text not null
--- Snapshot de carta (catálogo); todos NOT NULL en el esquema actual de juego
+-- Card snapshot (catalog). All fields are NOT NULL in the current game schema.
 card_id text not null
 card_name text not null
 card_set text not null
@@ -587,7 +585,7 @@ winning_total_time_ms int null
 created_at timestamptz not null default now()
 ```
 
-## 12.7 Tabla `game_players`
+## 12.7 `game_players` table
 ```sql
 id uuid pk
 game_id uuid not null references games(id) on delete cascade
@@ -603,7 +601,7 @@ did_win boolean not null default false
 created_at timestamptz not null default now()
 ```
 
-## 12.8 Tabla `guesses`
+## 12.8 `guesses` table
 ```sql
 id uuid pk
 game_id uuid not null references games(id) on delete cascade
@@ -616,7 +614,7 @@ time_taken_ms int not null
 created_at timestamptz not null default now()
 ```
 
-## 12.9 Tabla `user_stats`
+## 12.9 `user_stats` table
 ```sql
 user_id uuid pk references users(id) on delete cascade
 games_played int not null default 0
@@ -628,7 +626,7 @@ best_time_record_ms int null
 updated_at timestamptz not null default now()
 ```
 
-## 12.10 Tabla `user_card_stats`
+## 12.10 `user_card_stats` table
 ```sql
 id uuid pk
 user_id uuid not null references users(id) on delete cascade
@@ -641,7 +639,7 @@ average_time_ms numeric(12,2) null
 unique(user_id, card_id)
 ```
 
-## 12.11 Tabla `achievements`
+## 12.11 `achievements` table
 ```sql
 id uuid pk
 code text unique not null
@@ -650,7 +648,7 @@ description text not null
 created_at timestamptz not null default now()
 ```
 
-## 12.12 Tabla `user_achievements`
+## 12.12 `user_achievements` table
 ```sql
 id uuid pk
 user_id uuid not null references users(id) on delete cascade
@@ -664,7 +662,7 @@ unique(user_id, achievement_id)
 
 # 13. PRISMA SCHEMA NOTES
 
-## 13.1 Enums recomendados
+## 13.1 Recommended enums
 ```prisma
 enum GameMode {
   SINGLE
@@ -691,7 +689,7 @@ enum GameStatus {
 }
 ```
 
-## 13.2 Índices importantes
+## 13.2 Important indexes
 - `games(room_id)`, `games(status)`, `games(active_turn_room_player_id)`
 - `guesses(game_id, game_player_id, step_number)`
 - `room_players(room_id, joined_at)`
@@ -746,7 +744,7 @@ type RuntimeGameState = {
 }
 ```
 
-## 14.3 Cliente: store mínimo
+## 14.3 Minimum client store
 - currentRoom
 - currentGame
 - selfPlayer
@@ -761,13 +759,13 @@ type RuntimeGameState = {
 
 # 15. WEBSOCKET EVENT CONTRACT
 
-## 15.1 Principios
-- mensajes pequeños y explícitos
-- nombres de evento consistentes
-- separar command events de state events
-- on reconnect, mandar snapshot completo
+## 15.1 Principles
+- small, explicit messages
+- consistent event names
+- separate command events from state events
+- send a full snapshot on reconnect
 
-## 15.2 Estructura base
+## 15.2 Base structure
 ```ts
 type WsEnvelope<TType extends string, TPayload> = {
   type: TType
@@ -805,7 +803,7 @@ type ServerEvents =
   | { type: "error"; payload: ErrorPayload }
 ```
 
-## 15.5 Payloads clave
+## 15.5 Key payloads
 ```ts
 type SubmitGuessPayload = {
   roomId?: string
@@ -830,123 +828,123 @@ type StepSnapshot = {
 
 # 16. RECONNECTION STRATEGY
 
-## 16.1 Requisito
-Si un jugador pierde conexión, debe poder volver y recuperar **todo el estado**.
+## 16.1 Requirement
+A player who loses their connection must be able to return and recover the **full state**.
 
-## 16.2 El servidor debe devolver
+## 16.2 Required server response
 - room
 - players
-- game actual
-- step actual
-- historial de guesses
-- quién ya envió en el step actual
-- deadline del timer
-- estado de victoria/derrota si la partida terminó
+- current game
+- current step
+- guess history
+- who has already submitted in the current step
+- timer deadline
+- win or loss state if the game is over
 
-## 16.3 Estrategia cliente
-1. detectar disconnect
-2. intentar reconnect automático
-3. reenviar identidad del jugador
-4. recibir `state:full`
-5. rehidratar stores
-6. continuar sin recargar la página si es posible
+## 16.3 Client strategy
+1. Detect the disconnect.
+2. Try to reconnect automatically.
+3. Resend the player's identity.
+4. Receive `state:full`.
+5. Rehydrate the stores.
+6. Continue without reloading the page if possible.
 
-## 16.4 Casos edge
-- si la room ya terminó → mostrar pantalla final
-- si el jugador ya había acertado → volver con estado solved
-- si se perdió countdown → entrar directo al step actual
+## 16.4 Edge cases
+- If the room has already finished, show the results screen.
+- If the player already guessed correctly, return with their solved status.
+- If the player missed the countdown, join the current step directly.
 
 ---
 
 # 17. GAME ENGINES
 
 ## 17.1 Engine separation
-Recomendado:
+Recommended:
 - `singlePlayerEngine`
 - `competitiveEngine`
 - `coopEngine`
 - `challengeEngine`
 
-Todos comparten:
-- acceso al catálogo / snapshot de carta
+All engines share:
+- catalog access and card snapshots
 - guess normalization
 - result calculation
 - persistence layer
 
 ## 17.2 Single Player engine responsibilities
-- iniciar partida con carta aleatoria del catálogo
-- validar guess
-- avanzar step
-- determinar win/lose
-- persistir partida
-- actualizar stats si user registrado
+- start a game with a random card from the catalog
+- validate the guess
+- advance the step
+- determine the win or loss outcome
+- persist the game
+- update stats for registered users
 
 ## 17.3 Competitive engine responsibilities
-- sincronizar step grupal
-- registrar guess individual
-- detectar “all submitted”
-- controlar timer por step
-- resolver ranking final
+- synchronize the group's step
+- record each player's guess
+- detect when everyone has submitted
+- manage the per-step timer
+- determine the final rankings
 
 ## 17.4 Coop engine responsibilities
-- definir turn order aleatorio
-- determinar active player
-- avanzar turno
-- permitir host override si aplica
-- persistir historial de equipo
+- randomize turn order
+- determine the active player
+- advance the turn
+- allow the host to override when applicable
+- persist the team's guess history
 
 ---
 
 # 18. GUESS NORMALIZATION
 
-## 18.1 Necesidad
-El jugador escribe texto libre; el sistema debe comparar contra nombre de carta con tolerancia razonable.
+## 18.1 Requirement
+Players enter free text. The system should allow reasonable variation when comparing it with a card name.
 
-## 18.2 Reglas base
-- trim espacios
+## 18.2 Basic rules
+- trim leading and trailing whitespace
 - lowercase
-- remover dobles espacios
-- normalizar símbolos especiales si aplica
+- collapse repeated spaces
+- normalize special characters when applicable
 
 ## 18.3 MVP
-Comparación exacta tras normalización.
+Compare exact strings after normalization.
 
-## 18.4 Futuro
-Se puede añadir:
+## 18.4 Future work
+Possible additions:
 - alias
-- fuzzy matching pequeño
-- tolerancia a apostrofes o guiones
+- limited fuzzy matching
+- tolerance for apostrophes or hyphens
 
 ---
 
 # 19. AUTOCOMPLETE / SUGGESTIONS
 
-## 19.1 Requisito
-No es solo autocomplete duro; debe mostrar una lista de cartas que matchean lo que el usuario escribe.
+## 19.1 Requirement
+Autocomplete should display a list of matching cards as the user types.
 
-## 19.2 Fuente
-Cards dataset canónico de Flesh and Blood.
+## 19.2 Source
+Canonical Flesh and Blood card dataset.
 
-## 19.3 Comportamiento
-- input debounced
-- sugerencias mientras escribe
+## 19.3 Behavior
+- debounced input
+- suggestions as the user types
 - keyboard navigation
-- click/tap para seleccionar sugerencia
-- submit claro y rápido
+- select suggestions by click or tap
+- clear, fast submission
 
 ## 19.4 UX rule
-No autocompletar agresivamente al punto de estorbar.
+Keep autocomplete suggestions from getting in the user's way.
 
 ---
 
 # 20. ROOM / LOBBY DESIGN
 
 ## 20.1 Room creation
-Campos:
+Fields:
 - mode
 - selected sets
-- timer per step (solo multi competitivo)
-- visibility futura opcional
+- per-step timer (competitive multiplayer only)
+- optional visibility setting in a future phase
 - create button
 
 ## 20.2 Lobby UI
@@ -956,13 +954,13 @@ Campos:
 - selected sets summary
 - host controls
 - start button
-- readiness opcional futura; por ahora no requerida
+- optional ready status in a future phase
 
 ## 20.3 Countdown
-Al iniciar:
-- countdown visible
-- sonido ligero opcional
-- transición al primer step
+On game start:
+- visible countdown
+- optional subtle sound
+- transition to the first step
 
 ---
 
@@ -989,7 +987,7 @@ Al iniciar:
 - host start
 
 ## 21.4 Game screen
-- carta / reveal (foco visual)
+- card and reveal (visual focus)
 - step / attempts info
 - guess input
 - history
@@ -1016,29 +1014,29 @@ Al iniciar:
 # 22. MOBILE-FIRST ADAPTATIONS
 
 ## 22.1 Layout priorities
-1. arte / reveal de la carta
+1. card art and reveal
 2. input
 3. step info
 4. essential status
 5. history via drawer
 
 ## 22.2 Avoid on mobile
-- demasiadas columnas
-- side panels permanentes
-- texto redundante
-- listas largas visibles todo el tiempo
+- too many columns
+- persistent side panels
+- redundant text
+- long lists that are always visible
 
-## 22.3 Drawer recomendado
+## 22.3 Recommended drawer
 `HistoryDrawer`
 - swipe or button open
-- muestra guesses previos
-- en multi puede mostrar estado de jugadores
+- shows previous guesses
+- can show player statuses in multiplayer
 
 ---
 
 # 23. PROFILE & STATS
 
-## 23.1 Stats requeridas
+## 23.1 Required stats
 - games played
 - wins
 - losses
@@ -1049,23 +1047,23 @@ Al iniciar:
 - hardest cards
 - easiest cards
 
-## 23.2 Achievements sugeridos
-- First Blood: primera victoria
-- Sharp Eye: win en step 3 o antes
-- Consistent Scholar: 5 wins seguidas
-- Set Specialist: 10 wins en un mismo set
-- Never Give Up: ganar en último step
+## 23.2 Suggested achievements
+- First Blood: first win
+- Sharp Eye: win on or before step 3
+- Consistent Scholar: 5 consecutive wins
+- Set Specialist: 10 wins in the same set
+- Never Give Up: win on the final step
 
-## 23.3 Cálculo easiest/hardest
-Recomendado:
-- easiest = cartas con menor promedio de intentos para victorias
-- hardest = cartas con mayor promedio de intentos o mayor tasa de derrota
+## 23.3 Calculating easiest and hardest cards
+Recommended:
+- easiest = cards with the lowest average attempts to win
+- hardest = cards with the highest average attempts or loss rate
 
 ---
 
 # 24. ANALYTICS & OBSERVABILITY
 
-## 24.1 Eventos útiles
+## 24.1 Useful events
 - room created
 - room joined
 - game started
@@ -1076,14 +1074,14 @@ Recomendado:
 - autocomplete used
 - profile viewed
 
-## 24.2 Métricas valiosas
-- dropoff antes de primer guess
-- promedio de duración de partida
-- win rate por set
-- tasa de reconexión
-- step promedio de solución
+## 24.2 Useful metrics
+- drop-off before the first guess
+- average game duration
+- win rate by set
+- reconnection rate
+- average step on which players solve the card
 
-## 24.3 Logs recomendados
+## 24.3 Recommended logs
 Backend:
 - room lifecycle
 - ws connections
@@ -1095,55 +1093,55 @@ Backend:
 
 # 25. SECURITY / INTEGRITY
 
-## 25.1 Reglas
-- nunca confiar en estado del cliente
-- server valida:
-  - si el step es el correcto
-  - si ese jugador puede enviar
-  - si ya envió en el step
-  - si la partida sigue activa
+## 25.1 Rules
+- treat client state as untrusted
+- the server checks:
+  - whether the step is correct
+  - whether the player can submit
+  - whether the player already submitted in this step
+  - whether the game is still active
 
 ## 25.2 Challenge a friend
-Si luego se comparte link con carta específica:
-- validar permisos mínimos
-- no exponer data sensible
-- no permitir enumeración masiva si no hace falta
+If a future release adds links for specific cards:
+- validate minimum permissions
+- keep sensitive data private
+- prevent bulk enumeration when it is unnecessary
 
 ---
 
 # 26. MVP SCOPE RECOMMENDATION
 
-## 26.1 MVP real
-### Fase 1
+## 26.1 MVP scope
+### Phase 1
 - single player
-- login opcional
-- stats básicas
+- optional sign-in
+- basic stats
 - autocomplete
 - result screen
-- profile simple
+- simple profile
 
-### Fase 2
+### Phase 2
 - competitive multiplayer
 - room lobby
 - websocket sync
 - reconnection
 
-### Fase 3
+### Phase 3
 - cooperative mode
 - turn system
 - host override
 
-### Fase 4
+### Phase 4
 - challenge a friend
 - achievements
 - richer stats
 
-## 26.2 Qué NO meter en Fase 1
+## 26.2 Phase 1 exclusions
 - chat
-- ranking global complejo
+- complex global leaderboard
 - spectating
-- selección custom de carta expuesta públicamente sin control
-- demasiadas animaciones
+- unrestricted public access to custom card selection
+- excessive animations
 
 ---
 
@@ -1152,7 +1150,7 @@ Si luego se comparte link con carta específica:
 ## 27.1 Recommended order
 1. base repo + architecture
 2. auth + profile shell
-3. card catalog service + snapshot en `games`
+3. card catalog service and snapshots in `games`
 4. single player engine
 5. guess normalization + autocomplete
 6. result persistence
@@ -1401,7 +1399,7 @@ Requirements:
 ## 29.1 Single Player done means
 - user can choose sets
 - system starts a game
-- reveal / carta se renderiza correctamente
+- the card and reveal render correctly
 - suggestions work
 - guesses are persisted
 - win/lose works
@@ -1426,24 +1424,24 @@ Requirements:
 # 30. RISKS & MITIGATIONS
 
 ## 30.1 Risk: multiplayer complexity too early
-Mitigación:
+Mitigation:
 - single player first
 - shared engine abstractions
-- typed WS contracts desde el inicio
+- typed WebSocket contracts from the start
 
-## 30.2 Risk: repetición de la misma carta
-Mitigación:
-- ampliar pool (sets) y actualizar dependencia de cartas
-- (opcional futuro) historial por host en app — no depende de tablas puzzle en DB
+## 30.2 Risk: drawing the same card repeatedly
+Mitigation:
+- expand the pool of sets and update the card dependency
+- optional future work: keep per-host history in the app without relying on puzzle tables
 
 ## 30.3 Risk: autocomplete lag
-Mitigación:
+Mitigation:
 - pre-index card names
 - debounce
 - memoized filtering
 
 ## 30.4 Risk: reconnect inconsistency
-Mitigación:
+Mitigation:
 - server authoritative snapshot
 - idempotent event handling
 - room/game persistence
@@ -1452,27 +1450,27 @@ Mitigación:
 
 # 31. FINAL RECOMMENDATION AS PROJECT LEAD
 
-La mejor forma de llevar esta idea a la realidad es:
+Recommended implementation path:
 
-1. construir **single player impecable**
-2. dejar bien resueltos:
-   - snapshot de carta + reveal determinista
+1. Build a **polished single-player experience**.
+2. Finish the following:
+   - card snapshots and deterministic reveals
    - guess normalization
    - result persistence
    - profile/stats
-3. recién después abrir multiplayer
+3. Begin multiplayer work after completing those foundations.
 
-Eso te da:
-- una base sólida
-- algo jugable rápido
-- menos riesgo arquitectónico
-- un producto demostrable antes de la complejidad real-time
+This approach provides:
+- a solid foundation
+- a playable game early in development
+- lower architectural risk
+- a product to demonstrate before adding real-time complexity
 
 ---
 
 # 32. NEXT ACTION RECOMMENDED
 
-Empezar inmediatamente con este orden:
+Start with this sequence:
 1. Foundation / skeleton
 2. Prisma schema
 3. Card catalog + single player engine
@@ -1484,11 +1482,11 @@ Empezar inmediatamente con este orden:
 
 # 33. HANDOFF NOTE FOR NEXT CHAT / CURSOR
 
-Este documento es la fuente de verdad del proyecto para comenzar implementación.  
-Si otro agente o chat toma el proyecto, debe asumir:
-- **§0.1** describe la arquitectura implementada (catálogo `@flesh-and-blood/cards`, snapshot en `games`)
-- monorepo game app (web + API + shared); sin admin en el flujo actual
-- PostgreSQL para sesiones y stats; catálogo en memoria en el API
-- single player es prioridad
-- multiplayer viene después, pero ya condicionado por esta arquitectura
+Use this document as the project reference when starting implementation.\
+A new agent or chat taking over the project should know:
+- **§0.1** describes the implemented architecture (`@flesh-and-blood/cards` catalog and snapshots in `games`).
+- The game app is a monorepo (web, API, and shared). The admin is outside the current flow.
+- PostgreSQL stores sessions and stats. The API keeps the catalog in memory.
+- Single player is the priority.
+- Multiplayer comes later and will build on this architecture.
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Reveal engine — zonas por tipo, fases y plantillas (packages/shared). Coords 0-1 card space.",
+  "description": "Reveal engine — zones by card type, phases, and templates (packages/shared). Coordinates use 0–1 card space.",
   "templateKeyForKind": {
     "attackAction": "actionLike",
     "nonAttackAction": "actionLike",

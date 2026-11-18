@@ -1,33 +1,34 @@
-# Documentación
+# Documentation
 
-## Empezar aquí
+## Start here
 
-| Orden | Archivo | Para quién |
-|-------|---------|------------|
-| 1 | **[HANDOFF.md](./HANDOFF.md)** | Nuevo dueño del repo, otro Cursor, onboarding |
-| 2 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Desarrolladores / agentes (mapa técnico) |
-| 3 | **[FRAGMENTS.md](./FRAGMENTS.md)** | Trabajo en Fragments of Rathe |
+| Order | File | Audience |
+|-------|------|----------|
+| 1 | **[HANDOFF.md](./HANDOFF.md)** | New repository owners, new Cursor workspaces, and onboarding |
+| 2 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Developers and agents looking for a technical map |
+| 3 | **[FRAGMENTS.md](./FRAGMENTS.md)** | Contributors working on Fragments of Rathe |
 
-En la raíz del repo: **[README.md](../README.md)** (setup rápido) · **[AGENTS.md](../AGENTS.md)** (reglas Cursor).
+At the repository root, see **[README.md](../README.md)** for quick setup and **[AGENTS.md](../AGENTS.md)** for agent instructions.
 
-## Operación
+## Operations
 
-| Archivo | Tema |
-|---------|------|
-| [deploy.md](./deploy.md) | Vercel, Render, variables |
-| [database.md](./database.md) | Postgres, migraciones, catálogo |
-| [migrations.md](./migrations.md) | Flujo de migraciones |
-| [generated-files.md](./generated-files.md) | Qué no commitear |
+| File | Topic |
+|------|-------|
+| [HANDOFF-CHECKLIST.md](./HANDOFF-CHECKLIST.md) | Repository transfer |
+| [deploy.md](./deploy.md) | Vercel, Render, and environment variables |
+| [database.md](./database.md) | Postgres, migrations, and the catalog |
+| [migrations.md](./migrations.md) | Migration workflow |
+| [generated-files.md](./generated-files.md) | Generated artifacts to keep out of Git |
 
-## Producto y dominio
+## Product and domain
 
-| Archivo | Tema |
-|---------|------|
-| [BLUEPRINT_PRO.md](./BLUEPRINT_PRO.md) | Visión Guess (§0.1 = arquitectura actual) |
-| [CARD_TEMPLATES.md](./CARD_TEMPLATES.md) | Plantillas reveal |
-| [ZONE_VALIDITY.md](./ZONE_VALIDITY.md) | Zonas de reveal |
+| File | Topic |
+|------|-------|
+| [BLUEPRINT_PRO.md](./BLUEPRINT_PRO.md) | Guess product vision (§0.1 describes the current architecture) |
+| [CARD_TEMPLATES.md](./CARD_TEMPLATES.md) | Reveal templates |
+| [ZONE_VALIDITY.md](./ZONE_VALIDITY.md) | Reveal zones |
 
-## API interna (texto)
+## Internal API notes
 
 - `apps/api/prisma/MIGRATION_STRATEGY.txt`
 - `apps/api/prisma/DB_LAYER_OUTLINE.txt`

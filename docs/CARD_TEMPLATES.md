@@ -4,7 +4,7 @@ This file documents the fixed zone geometry used by the reveal engine.
 
 **Declarative spec (JSON):**
 
-- `packages/shared/src/config/reveal-engine-zones.json` — zonas, validez por tipo, reglas de fase y plantillas (coords 0–1 card space).
+- `packages/shared/src/config/reveal-engine-zones.json` — zones, validity by card type, phase rules, and templates (coordinates use 0–1 card space).
 
 **Runtime source of truth (TypeScript):**
 

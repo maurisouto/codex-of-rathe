@@ -1,53 +1,51 @@
-# Publicar el juego (Vercel + Render)
+# Deploying the game (Vercel + Render)
 
-El repo es un **monorepo npm**:
+The repository is an **npm monorepo**.
 
-| Paquete | Rol | Deploy típico |
-|--------|-----|----------------|
+| Package | Role | Typical deployment |
+|---------|------|--------------------|
 | `apps/web` | Next.js (UI) | **Vercel** |
-| `apps/api` | Hono + Prisma + Postgres | **Render** (proceso Node largo) |
-| `packages/shared` | Tipos y protocolo WS (co-op) | No se despliega solo |
+| `apps/api` | Hono + Prisma + Postgres | **Render** (long-running Node process) |
+| `packages/shared` | Shared types and co-op WebSocket protocol | Deployed with dependent apps |
 
-Artefactos generados (qué ignorar en git / Vercel): **[generated-files.md](./generated-files.md)**.
+See [generated-files.md](./generated-files.md) for which generated artifacts to exclude from Git and Vercel.
 
-La API Node de **Render** sirve las rutas HTTP (`/api/*`) y el WebSocket co-op (`/coop-ws`) en el mismo proceso.
+The Node API on **Render** serves the HTTP routes (`/api/*`) and the co-op WebSocket (`/coop-ws`) in the same process.
 
-## 1. API en Render
+## 1. API on Render
 
-1. Nuevo **Web Service**, conectá el mismo repo; **raíz del repo** (no un subdirectorio obligatorio si los comandos usan `workspace`).
-2. **Build command:** `npm ci && npm run db:deploy --workspace=@gac/api`
-3. **Start command:** `npm run start:api` (equivale a `tsx src/index.ts` en `apps/api`).
-4. Variables (mínimo):
-   - **`DATABASE_URL`** — Postgres del juego (migraciones en `apps/api/prisma`).
-   - Opcional: **`PORT`** — Render inyecta `PORT`; la app usa `process.env.PORT ?? 8787`.
-   - **`CORS_ORIGIN`** — Origen explícito del front en producción, p. ej. `https://tu-proyecto.vercel.app` (sin barra final). Se pueden separar varios orígenes con comas; el wildcard `*` no está permitido.
-   - No se necesita una URL de notificación separada cuando Render ejecuta la API Node unificada. `COOP_REALTIME_NOTIFY_URL` y `COOP_REALTIME_SECRET` quedan disponibles solo para el proceso standalone legacy.
+1. Create a **Web Service**, connect this repository, and use the **repository root**. Commands that target a workspace can run from the root.
+2. Set the **Build Command** to `npm ci && npm run db:deploy --workspace=@gac/api`.
+3. Set the **Start Command** to `npm run start:api` (equivalent to running `tsx src/index.ts` in `apps/api`).
+4. Configure these environment variables.
+   - **`DATABASE_URL`** points to the game's Postgres database. Migrations live in `apps/api/prisma`.
+   - **`PORT`** is optional. Render injects it, and the app uses `process.env.PORT ?? 8787`.
+   - **`CORS_ORIGIN`** lists the explicit production frontend origins, such as `https://your-project.vercel.app`, without trailing slashes. Separate multiple origins with commas. The wildcard `*` is disallowed.
+   - **`COOP_REALTIME_NOTIFY_URL`** and **`COOP_REALTIME_SECRET`** apply only to the legacy standalone process. The unified Node API on Render runs without a separate notification URL.
 
-Tras el deploy, probá `GET https://<tu-servicio>.onrender.com/api/health`.
+After deployment, check `GET https://<your-service>.onrender.com/api/health`.
 
-## 2. Front en Vercel
+## 2. Frontend on Vercel
 
-1. Importá el repo; **Root Directory** del proyecto: **raíz del monorepo** (donde está el `package.json` con `workspaces`).
-2. **Build command:** `npm run build --workspace=@gac/web` (o el default si usás `apps/web/vercel.json` copiado al root — recomendamos dejar la raíz como contexto del monorepo).
-3. **Install:** `npm ci` en la raíz (instala workspaces).
-4. Variables:
-   - **`API_PROXY_TARGET`** — URL base pública de la API **sin** path `/api`, p. ej. `https://gac-api.onrender.com`. Next reescribe `/api/*` del mismo sitio hacia ese host (evita CORS en el navegador).
-   - Opcional: **`NEXT_PUBLIC_COOP_WS_URL`** — `wss://.../coop-ws` apuntando a la API Node si el WebSocket no comparte el origen del front.
+1. Import the repository and set the project **Root Directory** to the **monorepo root**, which contains the `package.json` with `workspaces`.
+2. Set the **Build Command** to `npm run build --workspace=@gac/web`. If you copy `apps/web/vercel.json` to the root, you can use the default build command. Keep the monorepo root as the project context.
+3. Run `npm ci` from the root to install the workspaces.
+4. Configure these environment variables.
+   - **`API_PROXY_TARGET`** is the public API base URL without the `/api` path, such as `https://gac-api.onrender.com`. Next.js rewrites same-origin `/api/*` requests to that host so the browser avoids cross-origin requests.
+   - **`NEXT_PUBLIC_COOP_WS_URL`** is optional. Set it to the Node API's `wss://.../coop-ws` endpoint if the WebSocket uses a different origin from the frontend.
 
-**Sin** `API_PROXY_TARGET`, las rutas `/api/*` del front no llegan a la API (salvo que vuelvas a correr todo en un solo proceso).
+Without `API_PROXY_TARGET`, frontend `/api/*` routes reach the API only when both run in a single process.
 
-## 3. Desarrollo local
+## 3. Local development
 
-Terminal 1 — API (puerto por defecto 8787):
+Start the API in terminal 1. The default port is 8787.
 
 ```bash
-cd apps/api && cp ../../.env .env   # o symlink; necesitás DATABASE_URL
+cd apps/api && cp ../../.env .env   # Or use a symlink. DATABASE_URL is required.
 npm run dev
 ```
 
-Terminal 2 — Web con proxy a la API:
-
-En `apps/web/.env.local`:
+To run the web app with the API proxy in terminal 2, set the following in `apps/web/.env.local`.
 
 ```env
 API_PROXY_TARGET=http://127.0.0.1:8787
@@ -57,19 +55,19 @@ API_PROXY_TARGET=http://127.0.0.1:8787
 npm run dev --workspace=@gac/web
 ```
 
-El flujo normal no requiere una tercera terminal: `npm run dev:api` sirve HTTP y `/coop-ws` juntos.
-`npm run realtime:dev` queda como proceso standalone legacy para hosts donde HTTP y WS deban separarse.
+`npm run dev:api` serves HTTP and `/coop-ws` together, so the standard setup uses two terminals.
+`npm run realtime:dev` remains available as a legacy standalone process for hosts that require separate HTTP and WebSocket processes.
 
-## 4. Base de datos y catálogo
+## 4. Database and catalog
 
-- Migraciones en **`apps/api/prisma`**. Ejecutá `db:deploy` en el build de Render (o manualmente antes).
-- **`DATABASE_SSL_REJECT_UNAUTHORIZED=false`** en la API si Supabase u otro pooler da errores TLS (`P1010`).
-- El **catálogo de cartas** (`@flesh-and-blood/cards`) se carga **en memoria al arrancar** la API. Un **redeploy / restart** refresca sets y pool jugable. No hace falta publicar puzzles ni sincronizar un admin.
-- Si el catálogo **no puede cargarse al boot**, la API no debería dar por buenos los flujos de juego (health/checklist operativo).
+- Migrations live in **`apps/api/prisma`**. Run `db:deploy` in the Render build or run it manually beforehand.
+- Set **`DATABASE_SSL_REJECT_UNAUTHORIZED=false`** in the API if Supabase or another pooler reports TLS errors (`P1010`).
+- The API loads the **card catalog** (`@flesh-and-blood/cards`) **into memory at startup**. Redeploy or restart to refresh sets and the playable card pool. This requires no puzzle publication or admin synchronization.
+- If the catalog fails to load at startup, treat gameplay flows as unhealthy in operational checks.
 
 ## 5. Checklist
 
-- [ ] `DATABASE_URL` en Render (build + runtime).
-- [ ] `API_PROXY_TARGET` en Vercel apuntando a la API pública.
-- [ ] `CORS_ORIGIN` en la API con el dominio del front (recomendado en producción).
-- [ ] Verificar que la API arranca y responde (p. ej. `/api/health`); el catálogo se construye en ese arranque.
+- [ ] `DATABASE_URL` is set in Render for build and runtime.
+- [ ] `API_PROXY_TARGET` in Vercel points to the public API.
+- [ ] `CORS_ORIGIN` in the API includes the frontend domain (recommended in production).
+- [ ] The API starts and responds, for example at `/api/health`. The catalog loads on startup.

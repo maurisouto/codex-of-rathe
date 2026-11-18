@@ -1,6 +1,6 @@
 # Architecture overview
 
-English reference for developers and AI agents. For onboarding in Spanish, see **[HANDOFF.md](./HANDOFF.md)**.
+Technical reference for developers and AI agents. For onboarding, see **[HANDOFF.md](./HANDOFF.md)**.
 
 ## Monorepo layout
 
@@ -120,7 +120,7 @@ cd apps/api && npx tsc --noEmit
 
 | Doc | Purpose |
 |-----|---------|
-| [HANDOFF.md](./HANDOFF.md) | Repo transfer / onboarding (ES) |
+| [HANDOFF.md](./HANDOFF.md) | Repository handoff and onboarding |
 | [FRAGMENTS.md](./FRAGMENTS.md) | Fragments feature map |
 | [BLUEPRINT_PRO.md](./BLUEPRINT_PRO.md) | Product vision (§0.1 = current catalog model) |
 | [deploy.md](./deploy.md) | Vercel + Render |
