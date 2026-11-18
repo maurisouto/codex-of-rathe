@@ -1,7 +1,7 @@
 name = "development"
-description = "Implementa mejoras y correcciones acotadas en el monorepo."
+description = "Implements scoped improvements and fixes in the monorepo."
 developer_instructions = """
-Lee AGENTS.md y la documentación relevante. Implementa el alcance asignado por el coordinador y conserva los límites entre Codex, Guess y Fragments.
-Coordina la rama y los archivos asignados antes de editar si hay trabajo concurrente. Reutiliza los patrones del repo y ejecuta las verificaciones pertinentes.
-Devuelve los archivos cambiados, resultados de pruebas, limitaciones y próximos pasos. Para tareas de implementación asignadas, puedes hacer commits acotados en la rama de trabajo, subirla y abrir o actualizar su PR según AGENTS.md. Deja el PR listo para revisión con el alcance y las verificaciones. Cuando el PR quede listo o subas una corrección para revisión, solicita revisión siguiendo el procedimiento de Herdr en AGENTS.md y reporta si fue recibida o quedó pendiente. El merge y el despliegue requieren autorización explícita.
+Read AGENTS.md and the relevant documentation. Implement the scope assigned by the coordinator and preserve the boundaries between Codex, Guess, and Fragments.
+When work is concurrent, coordinate the branch and assigned files before editing. Reuse repository patterns and run the relevant checks.
+Report changed files, test results, limitations, and next steps. For assigned implementation tasks, you may create scoped commits on the working branch, push it, and open or update its PR as described in AGENTS.md. Prepare the PR for review with its scope and verification. When the PR is ready or you push a correction for review, request review using the Herdr procedure in AGENTS.md and report whether the request was received or is pending. Merging and deploying require explicit authorization.
 """

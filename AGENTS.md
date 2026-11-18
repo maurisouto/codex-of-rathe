@@ -4,28 +4,32 @@ Read this file before making changes. **`CLAUDE.md`** points here.
 
 ## Onboarding (new maintainer or new Cursor workspace)
 
-1. **[docs/HANDOFF.md](./docs/HANDOFF.md)** — traspaso del repo, setup, Fragments vs Guess, checklist (Spanish, primary).
-2. **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — monorepo, routes, catalog, auth (English).
+1. **[docs/HANDOFF.md](./docs/HANDOFF.md)** — primary repository handoff, setup, Fragments and Guess, and checklist.
+2. **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** — monorepo, routes, catalog, auth.
 3. **[docs/FRAGMENTS.md](./docs/FRAGMENTS.md)** — Fragments API, phases, files, constraints.
 
-## Equipo de agentes
+## Repository language
 
-El agente principal coordina el trabajo. Los perfiles de Codex en `.codex/agents/` son `product` para alcance y criterios de aceptación, `development` para implementación y `review` para verificación. Delega cuando la tarea lo amerite y pide una revisión independiente cuando aporte valor. Cada encargo debe incluir la experiencia afectada, el alcance y el resultado esperado.
+Write versioned deliverables in English, including documentation, code, comments, configuration, instructions, and project-authored text. Requests may arrive in any language. Preserve proper names and established contracts.
 
-Para retomar una tarea, lee primero la referencia del issue o PR, comprueba la rama y revisa el estado del árbol de trabajo. Al entregar el trabajo, registra la rama, el commit base, cambios relevantes, verificaciones, bloqueos y próximo paso en el issue o PR si está autorizado. Si la tarea todavía no tiene un registro compartido, usa `docs/STATUS.md` como nota de continuidad local. Identifica los cambios pendientes de commit y respeta la regla de commits de este repositorio.
+## Agent team
 
-### Coordinación visible en Herdr
+The lead agent coordinates the work. The Codex profiles in `.codex/agents/` are `product` for scope and acceptance criteria, `development` for implementation, and `review` for verification. Delegate when the task warrants it and request an independent review when it adds value. Include the affected experience, scope, and expected outcome in each assignment.
 
-En el workspace local de Herdr, el coordinador asigna tareas a los paneles Codex `rathe-producto`, `rathe-desarrollo` y `rathe-revision` con `herdr agent prompt`. Usa `herdr agent list` para confirmar el panel y `herdr agent read` para consultar su respuesta. Incluye el objetivo y la referencia del issue o PR en cada encargo, y registra el resultado y el próximo paso para poder retomar desde otra sesión.
+When resuming a task, read the referenced issue or PR, confirm the branch, and inspect the working tree. When handing off work, record the branch, base commit, relevant changes, verification, blockers, and next step in the issue or PR if authorized. If the task has no shared record yet, use `docs/STATUS.md` as a local handoff note. Identify uncommitted changes and follow the repository's commit rules.
 
-Cuando un PR de Desarrollo queda listo, o se sube una corrección que necesita otra pasada, Desarrollo solicita revisión como parte de la entrega mediante `herdr agent prompt rathe-revision`. Envía el enlace al PR, el SHA del head, el alcance y las verificaciones ejecutadas. Si el panel está ocupado, desconectado o el envío falla, entrega estos datos al coordinador con el estado **revisión pendiente**. El coordinador envía la solicitud al panel cuando esté disponible o encarga la revisión a un subagente en la sesión actual si está autorizado. Antes de reenviar una solicitud, confirma si ya se entregó para ese SHA.
+### Herdr coordination
 
-### Commits, PRs y revisión
+In the local Herdr workspace, the coordinator assigns work to the Codex panels `rathe-producto`, `rathe-desarrollo`, and `rathe-revision` using `herdr agent prompt`. Use `herdr agent list` to confirm the panel and `herdr agent read` to read its response. Include the objective and issue or PR reference in each assignment, and record the outcome and next step so another session can resume the work.
 
-- El agente de Desarrollo puede crear una rama para una tarea de implementación asignada, hacer commits de esa tarea, subir la rama y abrir o actualizar su PR. El PR debe indicar el alcance, las verificaciones y lo pendiente. El acceso efectivo depende de las credenciales y permisos de la sesión.
-- Un agente de Revisión distinto del autor revisa el diff y las verificaciones. Devuelve al coordinador un dictamen de **apto para merge**, **requiere cambios** o **revisión incompleta**, con la evidencia y los bloqueos. Si cambia el diff, revisa de nuevo lo afectado.
-- El visto bueno del agente es técnico. Una aprobación formal en GitHub requiere una identidad autorizada distinta de la que abrió el PR. El coordinador comparte el dictamen para que un revisor habilitado pueda aprobar en GitHub.
-- El merge y el despliegue requieren autorización explícita. Las reglas de protección de ramas de GitHub se aplican según la configuración del repositorio.
+When a Development PR is ready or a correction is pushed for another review, Development requests review with `herdr agent prompt rathe-revision` as part of the handoff. Include the PR URL, head SHA, scope, and verification performed. If the panel is busy or disconnected, or submission fails, report those details to the coordinator with the status **review pending**. The coordinator sends the request when the panel is available or assigns it to a subagent in the current session if authorized. Before resending a request, confirm whether it was already delivered for that SHA.
+
+### Commits, PRs, and review
+
+- Development may create a branch for an assigned implementation task, commit the task changes, push the branch, and open or update its PR. The PR must state the scope, verification, and outstanding work. Access depends on the session's credentials and permissions.
+- A reviewer other than the author reviews the diff and verification. The reviewer reports **ready to merge**, **changes required**, or **review incomplete** to the coordinator with evidence and blockers. If the diff changes, review the affected parts again.
+- The agent provides a technical verdict. Formal GitHub approval requires an authorized identity other than the PR author. The coordinator shares the verdict so an eligible reviewer can approve in GitHub.
+- Merging and deploying require explicit authorization. GitHub branch protection rules apply as configured for the repository.
 
 ## Next.js (required)
 

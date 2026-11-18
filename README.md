@@ -3,53 +3,54 @@
 Monorepo for **Codex of Rathe** (hub), **Guess the Card** (veiled FAB card guessing), and **Fragments of Rathe** (card puzzles).  
 Card content comes from **`@flesh-and-blood/cards`** via an in-memory catalog loaded at API startup.
 
-> **Nuevo maintainer / otro Cursor:** empezá por **[docs/HANDOFF.md](./docs/HANDOFF.md)** (traspaso, setup, mapa del producto).  
-> Agentes: **[AGENTS.md](./AGENTS.md)** · Arquitectura: **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** · Fragments: **[docs/FRAGMENTS.md](./docs/FRAGMENTS.md)**
+> **New maintainer or Cursor workspace:** start with **[docs/HANDOFF.md](./docs/HANDOFF.md)** for the repository handoff, setup, and product map.
+>
+> Agents: **[AGENTS.md](./AGENTS.md)** · Architecture: **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** · Fragments: **[docs/FRAGMENTS.md](./docs/FRAGMENTS.md)**
 
 ## Monorepo
 
-| Package | Role | Deploy típico |
+| Package | Role | Typical deployment |
 |---------|------|----------------|
 | `apps/web` | Next.js UI | **Vercel** |
 | `apps/api` | Hono + Prisma + REST `/api/*` | **Render** |
-| `packages/shared` | Tipos compartidos (reveal, co-op WS) | (no se despliega solo) |
+| `packages/shared` | Shared types (reveal, co-op WS) | (no standalone deployment) |
 
-Artefactos generados: **[docs/generated-files.md](./docs/generated-files.md)**.
+Generated artifacts: **[docs/generated-files.md](./docs/generated-files.md)**.
 
-## Experiencias (rutas principales)
+## Experiences (main routes)
 
-| Experiencia | Rutas | API |
+| Experience | Routes | API |
 |-------------|-------|-----|
 | Codex (hub) | `/`, `/profile`, `/u/[userId]` | `/api/profile`, … |
 | Guess | `/guess`, `/single`, `/challenge`, `/coop`, `/competitive`, `/leaderboard`, `/stats` | `/api/single`, `/api/challenges`, `/api/leaderboard`, … |
 | Fragments | `/puzzle`, `/puzzle/profile`, `/puzzle/leaderboard` | `/api/fragments/*` |
 
-## Setup local
+## Local setup
 
 ```bash
 npm install
-cp .env.example .env    # DATABASE_URL; Supabase si usás auth — ver comentarios
-npm run db:deploy       # migraciones (workspace @gac/api)
+cp .env.example .env    # Set DATABASE_URL and configure Supabase if you use auth. See the file comments.
+npm run db:deploy       # Apply migrations in the @gac/api workspace
 ```
 
-### Sign in local
+### Local sign-in
 
-El botón **Sign in** del hub solo se habilita cuando el frontend tiene configuradas
-`NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` en el `.env` raíz o en
-`apps/web/.env.local`. Usá la URL del proyecto y la **anon key** pública de
-Supabase Dashboard → Project Settings → API; nunca uses una service-role key en el navegador.
+The hub enables **Sign in** only when the frontend has `NEXT_PUBLIC_SUPABASE_URL`
+and `NEXT_PUBLIC_SUPABASE_ANON_KEY` configured in the root `.env` or in
+`apps/web/.env.local`. Use the project URL and the public **anon key** from
+Supabase Dashboard → Project Settings → API. Never use a service-role key in the browser.
 
-Después de cambiar estas variables, reiniciá `npm run dev`. Para OAuth o magic links,
-agregá `http://localhost:3000/auth/callback` en Supabase Dashboard → Authentication →
-URL Configuration y habilitá los providers correspondientes.
+After changing these variables, restart `npm run dev`. For OAuth or magic links, add
+`http://localhost:3000/auth/callback` in Supabase Dashboard → Authentication → URL Configuration
+and enable the relevant providers.
 
-**Solo front** (sin API, no hay datos reales):
+**Frontend only** (game data requires the API):
 
 ```bash
 npm run dev --workspace=@gac/web
 ```
 
-**API + front** (recomendado):
+**API and frontend** (recommended):
 
 ```bash
 # Terminal A
@@ -59,53 +60,54 @@ npm run dev:api
 npm run dev
 ```
 
-La API sirve HTTP y el WebSocket de co-op en el mismo proceso y puerto (`8787`). En desarrollo,
-el cliente usa automáticamente `ws://<host>:8787/coop-ws`; `NEXT_PUBLIC_COOP_WS_URL` solo es
-necesaria si el WebSocket vive en otro host. El polling HTTP se mantiene como fallback confiable.
+The API serves HTTP and the co-op WebSocket on the same process and port (`8787`). In
+development, the client automatically uses `ws://<host>:8787/coop-ws`. Set
+`NEXT_PUBLIC_COOP_WS_URL` only if the WebSocket runs on a different host. HTTP polling remains
+available as a fallback.
 
-En desarrollo, Next reenvía `/api/*` a `http://127.0.0.1:8787` por defecto. Override: `API_PROXY_TARGET` en `apps/web/.env.local`.
+In development, Next forwards `/api/*` to `http://127.0.0.1:8787` by default. Override the target with `API_PROXY_TARGET` in `apps/web/.env.local`.
 
-**Prisma:** esquema en `apps/api/prisma`. Cliente generado en `apps/api/src/generated/prisma` (gitignored). `prisma generate` puede correr sin DB vía `apps/api/prisma.config.ts`.
+The Prisma schema lives in `apps/api/prisma`. The generated client in `apps/api/src/generated/prisma` is ignored by Git. `prisma generate` can run without database access using `apps/api/prisma.config.ts`.
 
 ## Database & migrations
 
-Este repositorio **es la fuente de verdad** de migraciones Prisma para la base del juego.
+This repository is the **source of truth** for the game database’s Prisma migrations.
 
 ```bash
 npm run db:deploy
 ```
 
-Política y modelo catálogo-en-runtime: **[docs/database.md](./docs/database.md)**.
+See **[docs/database.md](./docs/database.md)** for the migration policy and runtime catalog model.
 
 ## Deploy
 
-Front **Vercel**, API **Render**, variables y proxy: **[docs/deploy.md](./docs/deploy.md)**.
+See **[docs/deploy.md](./docs/deploy.md)** for Vercel frontend hosting, the Render API, environment variables, and proxy setup.
 
-## Scripts (raíz)
+## Root scripts
 
 | Script | Purpose |
 |--------|---------|
-| `npm run dev` / `dev:web` | Next en `apps/web` |
-| `npm run dev:api` | Hono en `apps/api` (puerto 8787 o `PORT`) |
-| `npm run build` / `start` | Build y `next start` del web |
-| `npm run start:api` | API en producción |
-| `npm run lint` | ESLint del web |
+| `npm run dev` / `dev:web` | Next in `apps/web` |
+| `npm run dev:api` | Hono in `apps/api` (port 8787 or `PORT`) |
+| `npm run build` / `start` | Build and `next start` for the web app |
+| `npm run start:api` | Production API |
+| `npm run lint` | ESLint for the web app |
 | `npm test` | Vitest (web + api + shared) |
-| `npm run db:*` | Prisma vía workspace `@gac/api` |
-| `npm run realtime:dev` | Servidor WS co-op standalone legacy (workspace API) |
+| `npm run db:*` | Prisma through the workspace `@gac/api` |
+| `npm run realtime:dev` | Legacy standalone co-op WebSocket server (API workspace) |
 
-## Documentación
+## Documentation
 
-| Documento | Contenido |
+| Document | Contents |
 |-----------|-----------|
-| [docs/HANDOFF.md](./docs/HANDOFF.md) | **Traspaso / onboarding** |
-| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Arquitectura técnica |
+| [docs/HANDOFF.md](./docs/HANDOFF.md) | **Handoff and onboarding** |
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Technical architecture |
 | [docs/FRAGMENTS.md](./docs/FRAGMENTS.md) | Fragments of Rathe |
-| [docs/BLUEPRINT_PRO.md](./docs/BLUEPRINT_PRO.md) | Visión de producto (§0.1 = modelo actual) |
+| [docs/BLUEPRINT_PRO.md](./docs/BLUEPRINT_PRO.md) | Product vision (§0.1 describes the current model) |
 | [docs/deploy.md](./docs/deploy.md) | Hosting |
-| [docs/database.md](./docs/database.md) | Postgres y migraciones |
-| [AGENTS.md](./AGENTS.md) | Instrucciones para Cursor / agentes |
+| [docs/database.md](./docs/database.md) | Postgres and migrations |
+| [AGENTS.md](./AGENTS.md) | Instructions for Cursor and other agents |
 
 ## Learn more
 
-- [Next.js Documentation](https://nextjs.org/docs) — este proyecto usa **Next 16**; ver también `node_modules/next/dist/docs/`.
+- [Next.js Documentation](https://nextjs.org/docs) — this project uses **Next 16**. See also `node_modules/next/dist/docs/`.

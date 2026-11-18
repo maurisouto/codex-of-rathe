@@ -1,255 +1,259 @@
-# Traspaso del repositorio — Guess a Card, Any Card
+# Repository handoff — Guess a Card, Any Card
 
-Documento principal para **continuar el desarrollo** tras transferir el repo a otro usuario u organización. Léelo antes de abrir Cursor o desplegar.
+Start here when taking over development after a repository transfer. Read this guide before opening Cursor or deploying.
 
-**Última actualización orientativa:** junio 2026 (post Fases 5.5–6.5 de *Fragments of Rathe*).
-
----
-
-## 1. Qué es este proyecto
-
-Monorepo npm con **tres experiencias de producto** bajo una cuenta (Supabase Auth cuando está configurado):
-
-| Experiencia | Rutas web | Marca (`experience-brand`) | Descripción |
-|-------------|-----------|----------------------------|-------------|
-| **Codex of Rathe** | `/`, `/profile`, `/u/[userId]` | `codex` | Hub: enlaces a Guess y Fragments; perfil global. |
-| **Guess the Card** | `/guess`, `/single`, `/challenge`, `/coop`, `/competitive`, `/leaderboard`, `/stats`, … | `guess` | Adivinar cartas ofuscadas (reveal por pasos). |
-| **Fragments of Rathe** | `/puzzle`, `/puzzle/profile`, `/puzzle/leaderboard`, `/u/[userId]/puzzle` | `fragments` | Puzzles (fragmentos + sliding) con arte del catálogo FAB. |
-
-- **Front:** `apps/web` — Next.js 16 (ver reglas de agente: no asumir APIs de Next 14).
-- **API:** `apps/api` — Hono, Prisma 7, PostgreSQL.
-- **Compartido:** `packages/shared` — reveal, protocolo co-op, tipos.
-
-**Fuente de cartas:** paquete `@flesh-and-blood/cards`; el catálogo se construye **en memoria al arrancar la API** (`initCardCatalog()`). No hay tablas `Puzzle` en DB.
+**Last updated:** June 2026, after *Fragments of Rathe* Phases 5.5–6.5.
 
 ---
 
-## 2. Arranque rápido (nuevo entorno)
+## 1. Project overview
 
-### Requisitos
+This npm monorepo contains **three experiences** under one account, using Supabase Auth when configured.
+
+| Experience | Web routes | Brand (`experience-brand`) | Description |
+|------------|------------|----------------------------|-------------|
+| **Codex of Rathe** | `/`, `/profile`, `/u/[userId]` | `codex` | Hub linking to Guess and Fragments, with a global profile. |
+| **Guess the Card** | `/guess`, `/single`, `/challenge`, `/coop`, `/competitive`, `/leaderboard`, `/stats`, … | `guess` | Guess obscured cards as they are revealed in stages. |
+| **Fragments of Rathe** | `/puzzle`, `/puzzle/profile`, `/puzzle/leaderboard`, `/u/[userId]/puzzle` | `fragments` | Fragment and sliding puzzles featuring artwork from the FAB catalog. |
+
+- **Web** — `apps/web` uses Next.js 16. Consult the agent instructions for the applicable Next.js APIs.
+- **API** — `apps/api` uses Hono, Prisma 7, and PostgreSQL.
+- **Shared** — `packages/shared` contains the reveal engine, co-op protocol, and types.
+
+`initCardCatalog()` builds the card catalog in memory at API startup using `@flesh-and-blood/cards`. The database contains no `Puzzle` tables.
+
+---
+
+## 2. Quick start for a new environment
+
+### Requirements
 
 - Node **≥ 20.9**
-- PostgreSQL accesible (`DATABASE_URL`)
-- Opcional: proyecto Supabase (Auth + DB)
+- An accessible PostgreSQL instance (`DATABASE_URL`)
+- Optional Supabase project (Auth and DB)
 
-### Comandos
+### Commands
 
 ```bash
-git clone <url-del-repo>
+git clone <repo-url>
 cd guess-a-card-any-card
 npm install
-cp .env.example .env   # completar DATABASE_URL y, si aplica, Supabase
-npm run db:deploy      # aplica migraciones en apps/api/prisma
+cp .env.example .env   # Set DATABASE_URL and any applicable Supabase settings
+npm run db:deploy      # Apply migrations under apps/api/prisma
 ```
 
-**Desarrollo recomendado (dos terminales):**
+Use two terminals for local development.
 
 ```bash
-# Terminal A — API (puerto 8787 por defecto)
+# Terminal A — API (port 8787 by default)
 npm run dev:api
 
-# Terminal B — Web (proxy /api → 8787 en dev automático)
+# Terminal B — Web (automatically proxies /api to port 8787 in development)
 npm run dev
 ```
 
-- Health: `GET http://127.0.0.1:8787/api/health`
-- Sin API, el front no tiene datos reales de juego.
+- Check API health with `GET http://127.0.0.1:8787/api/health`.
+- The web app needs the API to load live game data.
 
-### Variables de entorno
+### Environment variables
 
-Plantilla: **`.env.example`** (raíz; la API también lee `apps/api/.env` si existe).
+Use the root **`.env.example`** as a template. The API also reads `apps/api/.env` if present.
 
-| Variable | Dónde | Uso |
-|----------|--------|-----|
-| `DATABASE_URL` | API | Postgres / Supabase |
-| `SUPABASE_URL` / `SUPABASE_JWKS_URL` | API | Validar JWT de usuario |
-| `NEXT_PUBLIC_SUPABASE_*` | Web | Login en navegador |
-| `CORS_ORIGIN` | API prod | Origen del front (Vercel) |
-| `API_PROXY_TARGET` | Web prod | URL base de la API (sin `/api`) |
-| `NEXT_PUBLIC_COOP_WS_URL` | Web | Override opcional del endpoint WS co-op |
+| Variable | Where | Purpose |
+|----------|-------|---------|
+| `DATABASE_URL` | API | PostgreSQL or Supabase |
+| `SUPABASE_URL` / `SUPABASE_JWKS_URL` | API | Validate user JWTs |
+| `NEXT_PUBLIC_SUPABASE_*` | Web | Browser sign-in |
+| `CORS_ORIGIN` | Production API | Web app origin (Vercel) |
+| `API_PROXY_TARGET` | Production web | API base URL without `/api` |
+| `NEXT_PUBLIC_COOP_WS_URL` | Web | Optional override for the co-op WebSocket endpoint |
 
-Para habilitar **Sign in** en el hub durante desarrollo local, completá en el `.env`
-raíz (o `apps/web/.env.local`) `NEXT_PUBLIC_SUPABASE_URL` y
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` con los valores públicos de Supabase → Project Settings → API.
-La anon key puede estar expuesta al navegador; nunca debe usarse una service-role key con
-prefijo `NEXT_PUBLIC_`. Reiniciá Next después de cambiar variables públicas. Para OAuth o
-magic links, registrá `http://localhost:3000/auth/callback` en Authentication → URL Configuration
-y habilitá los providers necesarios.
+To enable **Sign in** on the hub during local development, set `NEXT_PUBLIC_SUPABASE_URL`
+and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in the root `.env` or `apps/web/.env.local`. Use the public
+values from Supabase → Project Settings → API. The anon key may be exposed to the browser.
+Never put a service-role key in a variable with the `NEXT_PUBLIC_` prefix. Restart Next.js
+after changing public variables. For OAuth or magic links, register
+`http://localhost:3000/auth/callback` under Authentication → URL Configuration and enable the
+required providers.
 
-Detalle de deploy: **[deploy.md](./deploy.md)**.
+See the [deployment guide](./deploy.md).
 
 ---
 
-## 3. Arquitectura (resumen)
+## 3. Architecture overview
 
 ```
 apps/web (Next)  ──rewrite /api/*──►  apps/api (Hono :8787)
                                          │
                                          ├── Prisma → PostgreSQL
-                                         └── Catálogo FAB (memoria, boot)
+                                         └── In-memory FAB catalog (loaded at startup)
 ```
 
-- **Guess leaderboard:** `/api/leaderboard` — **no mezclar** con Fragments.
-- **Fragments:** `/api/fragments/*` — persistencia y rankings propios.
-- **Invitado:** header `x-guest-id`; usuario: `Authorization: Bearer <jwt>`.
+- **Guess leaderboard** uses `/api/leaderboard` and stays separate from Fragments.
+- **Fragments** uses `/api/fragments/*` and has its own persistence and rankings.
+- Guests use the `x-guest-id` header. Signed-in users use `Authorization: Bearer <jwt>`.
 
-Mapa más detallado: **[ARCHITECTURE.md](./ARCHITECTURE.md)**.  
-Visión de producto histórica (algunas secciones obsoletas): **[BLUEPRINT_PRO.md](./BLUEPRINT_PRO.md)** — prevalece **§0.1** del blueprint sobre “puzzle DB”.
-
----
-
-## 4. Base de datos y migraciones
-
-- **Dueño de migraciones:** este repo (`apps/api/prisma`).
-- **Aplicar en deploy/local:** `npm run db:deploy`.
-- **Generar cliente:** `npm run db:generate` → `apps/api/src/generated/prisma` (gitignored).
-
-Migraciones recientes relevantes para Fragments:
-
-- `20260509004000_fragments_persistence_stats` — completions + stats agregados.
-- `20260509120000_fragments_leaderboard_indexes` — índices para leaderboards.
-
-Política completa: **[database.md](./database.md)**.
-
-**Nota sobre `image-guess-admin`:** el README antiguo mencionaba un admin compartiendo DB. La arquitectura actual (**database.md**, blueprint §0.1) indica que el **admin no forma parte** del gameplay ni de esta base. Si existe un repo admin legacy, **no** debe divergir migraciones contra la misma DB sin acuerdo explícito.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full architecture map. The historical product
+vision contains some outdated sections. For the current catalog model, section 0.1 takes precedence
+over the historical puzzle database design. [BLUEPRINT_PRO.md](./BLUEPRINT_PRO.md)
 
 ---
 
-## 5. Fragments of Rathe — estado implementado
+## 4. Database and migrations
 
-Experiencia **independiente** de Guess (rutas, API, leaderboards, UI verde/archivo).
+- This repository owns the migrations under `apps/api/prisma`.
+- Run `npm run db:deploy` locally and during deployment to apply migrations.
+- Run `npm run db:generate` to generate the client at `apps/api/src/generated/prisma`, which Git ignores.
 
-### Rutas web
+Recent migrations relevant to Fragments:
 
-| Ruta | Componente principal |
-|------|----------------------|
-| `/puzzle` | `FragmentsPlayClient` + setup / juego |
+- `20260509004000_fragments_persistence_stats` — completions and aggregated statistics.
+- `20260509120000_fragments_leaderboard_indexes` — leaderboard indexes.
+
+See the [database policy](./database.md).
+
+An earlier README mentioned `image-guess-admin` sharing the database. The current policy and blueprint
+section 0.1 place that admin outside gameplay and this database. If a legacy admin repository still exists,
+it needs explicit agreement before applying independent migrations to the same database.
+
+---
+
+## 5. Fragments of Rathe — implementation status
+
+Fragments has its own routes, API, leaderboards, and green archive-themed UI.
+
+### Web routes
+
+| Route | Main component |
+|-------|----------------|
+| `/puzzle` | `FragmentsPlayClient` with setup and gameplay |
 | `/puzzle/profile` | `FragmentsProfilePageClient` |
 | `/puzzle/leaderboard` | `FragmentsLeaderboardClient` — *Hall of records* |
 | `/u/[userId]/puzzle` | `FragmentsPublicProfileClient` |
 
 ### API (`/api/fragments`)
 
-| Método | Ruta | Notas |
-|--------|------|--------|
-| POST | `/completions` | Usuario autenticado; idempotente por `runId` |
-| GET | `/profile/me` | Requiere auth |
-| GET | `/profile/:userId` | Público |
-| GET | `/leaderboards` | Query: `category`, `mode`, `difficulty`, `limit`, `offset` |
+| Method | Route | Notes |
+|--------|-------|-------|
+| POST | `/completions` | Requires authentication to persist and uses `runId` for idempotency |
+| GET | `/profile/me` | Requires authentication |
+| GET | `/profile/:userId` | Public |
+| GET | `/leaderboards` | Query parameters `category`, `mode`, `difficulty`, `limit`, and `offset` |
 
-### Fases completadas (referencia)
+### Completed phases
 
-| Fase | Contenido |
-|------|-----------|
-| 5 | Persistencia completions + `UserFragmentsStat` + perfiles |
-| 5.5 | Perfil rico: resumen, breakdowns, progreso por set, highlights, actividad reciente |
-| 6 | Leaderboards (fastest, fewest_moves, most_restorations, most_unique_cards) + filtros |
-| 6.5 | Navegación: header Play / Hall / Your archive, entry rail en `/puzzle`, mobile Fragments |
+| Phase | Scope |
+|-------|-------|
+| 5 | Completion persistence, `UserFragmentsStat`, and profiles |
+| 5.5 | Expanded profile with a summary, breakdowns, progress by set, highlights, and recent activity |
+| 6 | Leaderboards (`fastest`, `fewest_moves`, `most_restorations`, `most_unique_cards`) and filters |
+| 6.5 | Navigation with Play, Hall of records, and Your archive in the header, an entry rail on `/puzzle`, and mobile navigation |
 
-Detalle técnico Fragments: **[FRAGMENTS.md](./FRAGMENTS.md)**.
+See the [Fragments technical guide](./FRAGMENTS.md).
 
-### Qué **no** está hecho (Fragments)
+### Pending Fragments features
 
-- Verificación servidor del puzzle (completions confían en el cliente — ver comentario en `fragments-service.ts`).
-- Share URLs, daily puzzle, multiplayer Fragments.
-- Anti-cheat serio.
+- Server-side puzzle verification. Completions rely on the client as documented in `fragments-service.ts`.
+- Share URLs, a daily puzzle, and multiplayer Fragments.
+- Robust anti-cheat measures.
 
-### Terminología acordada (UI)
+### UI terminology
 
-- **Restorations** / **restore** — preferir sobre “run/game/match” mezclados.
-- **Hall of records** — leaderboards (`/puzzle/leaderboard`).
-- **Your archive** — perfil propio (`/puzzle/profile`).
-- **Start puzzle** — CTA principal en setup (no sustituir por “Play game”).
-
----
-
-## 6. Guess — no tocar sin intención
-
-- Leaderboard Guess: `/leaderboard` (web) + `/api/leaderboard` (API).
-- Perfiles Guess: `/guess/profile`, `/u/[id]/guess`.
-- Al trabajar en Fragments: **no** refactorizar stats Guess ni mezclar rankings.
+- Use **restorations** and **restore** consistently in Fragments.
+- **Hall of records** names the leaderboard page (`/puzzle/leaderboard`).
+- **Your archive** names the signed-in profile page (`/puzzle/profile`).
+- **Start puzzle** is the primary setup action.
 
 ---
 
-## 7. Pruebas
+## 6. Guess boundaries
 
-Desde la raíz:
+- The Guess leaderboard uses `/leaderboard` on the web and `/api/leaderboard` on the API.
+- Guess profile routes are `/guess/profile` and `/u/[id]/guess`.
+- Keep Guess statistics and rankings separate when working on Fragments.
+
+---
+
+## 7. Testing
+
+From the repository root, run the following.
 
 ```bash
-npm test                    # Vitest: web + api + shared (proyectos en vitest.config.ts)
-cd apps/web && npx tsc --noEmit
-cd apps/api && npx tsc --noEmit
+npm test                    # Vitest for web, API, and shared (projects in vitest.config.ts)
 ```
 
-Tests de cableado Fragments (sin RTL): `apps/web/src/features/fragments/*-wiring.test.ts`, `*-source.test.ts`.
+Run `npx tsc --noEmit` separately in `apps/web` and `apps/api`.
+
+Fragments wiring tests use `*-wiring.test.ts` and `*-source.test.ts` under
+`apps/web/src/features/fragments/`. They run without React Testing Library.
 
 ---
 
-## 8. Trabajar con Cursor / agentes
+## 8. Working with Cursor and agents
 
-1. Leer **`AGENTS.md`** (reglas del repo para el asistente).
-2. Antes de código Next.js: guías en `node_modules/next/dist/docs/` (Next **16**, breaking changes).
-3. Convenciones: cambios **mínimos**, reutilizar patrones del archivo vecino, no sobre-ingeniería.
-4. **No** crear commits ni PR salvo que el usuario lo pida.
-5. Fases Fragments futuras: respetar límites de cada fase (ver FRAGMENTS.md).
-
----
-
-## 9. Despliegue (checklist nuevo maintainer)
-
-1. Postgres con migraciones aplicadas (`db:deploy` en build API).
-2. API en Render con `DATABASE_URL`, `CORS_ORIGIN`, Supabase JWKS si hay auth.
-3. Vercel (web) con `API_PROXY_TARGET` apuntando a la API.
-4. Supabase: URLs de callback `.../auth/callback` en Authentication.
-5. Tras deploy API: reinicio carga catálogo FAB (si falla boot, no hay cartas).
+1. Read the [repository instructions](../AGENTS.md).
+2. Before editing Next.js code, read the relevant Next.js 16 guides under `node_modules/next/dist/docs/`.
+3. Keep changes minimal, follow neighboring patterns, and avoid over-engineering.
+4. Follow [AGENTS.md](../AGENTS.md) for commit and PR authorization.
+5. Follow the scope of each future Fragments phase. [Fragments technical guide](./FRAGMENTS.md)
 
 ---
 
-## 10. Archivos “mapa” útiles
+## 9. Deployment checklist for new maintainers
 
-| Área | Ubicación |
-|------|-----------|
-| Rutas API | `apps/api/src/server/http-app.ts` |
-| Fragments servicio | `apps/api/src/server/services/fragments-service.ts` |
+1. Apply PostgreSQL migrations with `db:deploy` during the API build.
+2. Configure the Render API with `DATABASE_URL`, `CORS_ORIGIN`, and Supabase JWKS when using authentication.
+3. Set `API_PROXY_TARGET` on Vercel to point the web app at the API.
+4. Configure the `.../auth/callback` URLs under Supabase Authentication.
+5. After an API deployment, confirm that startup loaded the FAB catalog. A startup failure leaves cards unavailable.
+
+---
+
+## 10. Key files
+
+| Area | Location |
+|------|----------|
+| API routes | `apps/api/src/server/http-app.ts` |
+| Fragments service | `apps/api/src/server/services/fragments-service.ts` |
 | Fragments leaderboards | `apps/api/src/server/services/fragments-leaderboard-service.ts` |
-| Catálogo FAB | `apps/api/src/server/services/card-catalog-service.ts` |
-| Marca por ruta | `apps/web/src/lib/experience-brand.ts` |
-| Header Fragments | `apps/web/src/components/layout/fragments-header.tsx` |
-| Motor puzzle (client) | `apps/web/src/features/fragments/engine/` |
-| Tipos Fragments API | `apps/web/src/lib/fragments/types.ts` |
-| Esquema Prisma | `apps/api/prisma/schema.prisma` |
+| FAB catalog | `apps/api/src/server/services/card-catalog-service.ts` |
+| Brand by route | `apps/web/src/lib/experience-brand.ts` |
+| Fragments header | `apps/web/src/components/layout/fragments-header.tsx` |
+| Client puzzle engine | `apps/web/src/features/fragments/engine/` |
+| Fragments API types | `apps/web/src/lib/fragments/types.ts` |
+| Prisma schema | `apps/api/prisma/schema.prisma` |
 
 ---
 
-## 11. Problemas frecuentes
+## 11. Troubleshooting
 
-| Síntoma | Causa probable | Acción |
-|---------|----------------|--------|
-| `/api/*` 404 en dev | API no corre | `npm run dev:api` |
-| Catálogo vacío / crash API | FAB filters o paquete | Logs al boot; ver `card-catalog-service` |
-| Migraciones fallan | `DATABASE_URL` pooler | Usar conexión directa Supabase (ver `.env.example`) |
-| Auth no guarda Fragments | Guest o JWT inválido | Sign in; header `Authorization` |
-| CORS en prod | Falta `CORS_ORIGIN` | Configurar en API o usar proxy Vercel |
-| Prisma client missing | No generate | `npm run db:generate` |
-
----
-
-## 12. Próximos pasos sugeridos (producto)
-
-1. **Fragments:** deep links Hall → filtros; “tu posición” en leaderboard; opcional verificación de puzzle en servidor.
-2. **Guess:** seguir roadmap en BLUEPRINT_PRO (modos ya parcialmente implementados).
-3. **Auth:** alinear `users.id` con `auth.users.id` si aún hay desvíos.
-4. **Co-op WS:** el servidor Node de la API atiende HTTP y `/coop-ws` en el mismo proceso; el polling HTTP sigue siendo fallback.
+| Symptom | Likely cause | Action |
+|---------|--------------|--------|
+| `/api/*` returns 404 in development | The API is down | Run `npm run dev:api` |
+| Empty catalog or API crash | FAB filters or the package | Check startup logs and `card-catalog-service` |
+| Migrations fail | `DATABASE_URL` uses a pooler | Use a direct Supabase connection (see `.env.example`) |
+| Fragments completions do not persist | Guest actor or invalid JWT | Sign in and check the `Authorization` header |
+| CORS error in production | Missing `CORS_ORIGIN` | Configure it on the API or use the Vercel proxy |
+| Prisma client missing | Client generation has not run | Run `npm run db:generate` |
 
 ---
 
-## 13. Contacto y continuidad
+## 12. Suggested product follow-ups
 
-Al recibir el repo:
+1. **Fragments** — deep links from Hall of records to filters, the user's leaderboard position, and optional server-side puzzle verification.
+2. **Guess** — follow the roadmap in [BLUEPRINT_PRO.md](./BLUEPRINT_PRO.md), with some modes already partially implemented.
+3. **Auth** — align `users.id` with `auth.users.id` if discrepancies remain.
+4. **Co-op WebSocket** — the Node API server handles HTTP and `/coop-ws` in the same process. HTTP polling remains the fallback.
 
-1. Clonar, `npm install`, `.env`, `db:deploy`.
-2. Leer este archivo + **FRAGMENTS.md** + **ARCHITECTURE.md**.
-3. Ejecutar `npm test` y smoke manual: `/`, `/puzzle`, `/puzzle/profile`, `/puzzle/leaderboard`.
-4. Revisar `git status` / ramas abiertas y PRs pendientes del equipo anterior.
+---
 
-Si el traspaso incluye **secretos** (Supabase, Render, Vercel), rotarlos fuera de git y actualizar solo en los paneles de hosting — nunca commitear `.env`.
+## 13. Handoff and continuity
+
+When receiving the repository:
+
+1. Clone it, run `npm install`, configure `.env`, and run `npm run db:deploy`.
+2. Read this guide, [FRAGMENTS.md](./FRAGMENTS.md), and [ARCHITECTURE.md](./ARCHITECTURE.md).
+3. Run `npm test` and manually smoke-test `/`, `/puzzle`, `/puzzle/profile`, and `/puzzle/leaderboard`.
+4. Review `git status`, open branches, and pending PRs from the previous team.
+
+If the handoff includes secrets for Supabase, Render, or Vercel, rotate them outside Git and update them only in the hosting dashboards. Never commit `.env`.

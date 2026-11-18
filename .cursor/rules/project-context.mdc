@@ -1,5 +1,5 @@
 ---
-description: Contexto del monorepo Guess a Card / Codex / Fragments — leer antes de cambios amplios
+description: Guess a Card / Codex / Fragments monorepo context — read before broad changes
 alwaysApply: true
 ---
 
@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Start here
 
-- Onboarding (Spanish): `docs/HANDOFF.md`
+- Onboarding: `docs/HANDOFF.md`
 - Architecture: `docs/ARCHITECTURE.md`
 - Fragments feature map: `docs/FRAGMENTS.md`
 - Agent rules: `AGENTS.md`
@@ -32,7 +32,7 @@ Read `node_modules/next/dist/docs/` — this is Next 16, not legacy App Router a
 
 ## Constraints (common tasks)
 
-- Minimal diffs; match existing patterns; no commits unless user asks
+- Keep diffs minimal, match existing patterns, and follow the commit authorization in `AGENTS.md`.
 - Fragments phases: do not change Guess leaderboard/stats unless explicitly requested
 - Fragments completions are client-trusted in v1 (no server puzzle verification yet)
 
