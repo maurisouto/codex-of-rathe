@@ -17,15 +17,16 @@ if (!base || !asOf || !output) {
 
 const requirePackage = createRequire(resolve(base, "package.json"));
 const cardPackage = requirePackage("@flesh-and-blood/cards");
-const typePackage = requirePackage("@flesh-and-blood/types");
+const requireFromCards = createRequire(requirePackage.resolve("@flesh-and-blood/cards"));
+const typePackage = requireFromCards("@flesh-and-blood/types");
 const publishedReleases = cardPackage.releases ?? typePackage.releases;
 if (!Array.isArray(cardPackage.cards) || !Array.isArray(publishedReleases)) {
   throw new Error("Unsupported cards or releases export");
 }
 const { allCards } = buildCatalogFromFaBCards(cardPackage.cards);
 const digest = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
-function packageVersion(name: string): string {
-  return JSON.parse(readFileSync(resolve(dirname(requirePackage.resolve(name)), "../package.json"), "utf8")).version;
+function packageVersion(entryPath: string): string {
+  return JSON.parse(readFileSync(resolve(dirname(entryPath), "../package.json"), "utf8")).version;
 }
 const releaseDates = indexCommercialReleaseDays(publishedReleases);
 const releaseDay = (release: string): string | null => releaseDates.get(release) ?? null;
@@ -267,7 +268,10 @@ async function main() {
 
   const report = {
     asOf,
-    versions: { cards: packageVersion("@flesh-and-blood/cards"), types: packageVersion("@flesh-and-blood/types") },
+    versions: {
+      cards: packageVersion(requirePackage.resolve("@flesh-and-blood/cards")),
+      types: packageVersion(requireFromCards.resolve("@flesh-and-blood/types")),
+    },
     releaseSource: cardPackage.releases ? "cards.releases" : "types.releases",
     catalogCards: cardPackage.cards.length,
     dateRecords: publishedReleases.length,

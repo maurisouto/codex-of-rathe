@@ -62,11 +62,19 @@ The date of the History Pack 1 reprint is 2022-05-06. It does not change the Arc
 
 The API uses a checked-in, server-only index at `apps/api/src/server/chronicle/index.generated.json`. It contains all accepted entries for the sampled pool, including embedded WebP crops that remain available independently of live CDN requests. Full-card URLs were verified when the index was generated and can still become unavailable later.
 
-Generate a candidate from the current repository lockfile. Passing a fifth argument writes the validated index after the sampled pool can produce a complete Streak run. The generator replaces the target atomically, so a failed audit or export preserves any previous index.
+Generate a candidate from npm's public `@flesh-and-blood/cards@latest` tag. The refresh pins the concrete cards version and installs it in a temporary directory. npm resolves the cards package's declared types dependency and records the concrete compatible version and integrity in an isolated lockfile. The repository package.json and lockfile are untouched.
 
 ```sh
 audit_root=$(mktemp -d)
-node_modules/.bin/tsx scripts/chronicle/audit.ts . "$(date -u +%F)" "$audit_root/evidence" "$audit_root/index.generated.json"
+node scripts/chronicle/refresh-index.mjs "$(date -u +%F)" "$audit_root/candidate"
 ```
 
-The **Verify Chronicle index refresh** workflow runs weekly when present on the repository default branch, with a manual trigger available under GitHub's workflow dispatch rules. It generates a candidate without changing the shared card dependencies, compares coverage with the checked-in index, and uploads the candidate and audit report. After a successful run, promote the candidate by replacing the tracked index in an ordinary PR. The previous validated index remains the runtime input until promotion. No card-by-card approval is required. A failed run or a candidate with unacceptable coverage leaves the checked-in index in place.
+The refresh accepts an explicit cutoff day and publishes the candidate directory only after the audit has validated the candidate and generated all six Streak rounds. An existing output directory is rejected. `source.json` records the registry, concrete versions, dependency constraint, tarball integrity, release source, and index SHA-256. Reproduce the source install by copying `catalog-package.json` and `catalog-package-lock.json` into an isolated directory as `package.json` and `package-lock.json`, then running `npm ci --ignore-scripts` there. Pass that directory and the recorded cutoff to `audit.ts`. Its optional fifth argument writes an index atomically, preserving any previous index if the audit or export fails.
+
+The **Verify Chronicle index refresh** workflow runs weekly when present on the repository default branch, with a manual trigger available under GitHub's workflow dispatch rules. It compares candidate coverage with the checked-in index and uploads the index, audit report, and source provenance. Promote the candidate by replacing the tracked index in an ordinary PR. The previous validated index remains the runtime input until promotion. No card-by-card approval is required. A failed run or a candidate with unacceptable coverage leaves the checked-in index in place.
+
+## Runtime
+
+Chronicle mounts at `/chronicle` and uses the existing web proxy for `/api/chronicle`. Start the API and web app as described in the [repository handoff](../../docs/HANDOFF.md). The guest game does not use database persistence. The API holds a bounded set of active runs in memory. A restart or request routed to another API process can end an active run, so the current deployment expects the same API process to serve a run. The browser saves the latest completed result with its opaque run identifier.
+
+The index is bundled with the API and read on the first Chronicle request. Keep the checked-in index available when deploying the API. The pre-result response contains only the current card names, opaque IDs, cropped images, and round state. The result reveals release days, set names, and full-card URLs. The catalog and committed index can be inspected in the public repository independently of a live round. Chronicle is a guest game with no competitive ranking.
