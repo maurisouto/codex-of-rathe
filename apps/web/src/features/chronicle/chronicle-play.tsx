@@ -26,6 +26,7 @@ import {
   parseSavedResult,
   recordResult,
   roundAction,
+  secondsRemaining,
   startRun,
   subscribeToResult,
   type Mode,
@@ -104,15 +105,16 @@ export function ChroniclePlay() {
   const board = useRef<HTMLOListElement>(null);
   const moveFocus = useRef<MoveFocus | null>(null);
 
-  const publish = useCallback((next: Snapshot) => {
-    if (current.current?.roundId !== next.roundId) {
+  const publish = useCallback((next: Snapshot, requestedAt: number) => {
+    const sameRound = current.current?.roundId === next.roundId;
+    if (!sameRound) {
       loaded.current = new Set();
       moveFocus.current = null;
       setAnnouncement("");
     }
     current.current = next;
-    deadline.current = next.result ? null : deadlineFromServer(next, performance.now());
-    setSeconds(deadline.current === null ? null : Math.ceil((deadline.current - performance.now()) / 1_000));
+    deadline.current = next.result ? null : deadlineFromServer(next, requestedAt, sameRound ? deadline.current : null);
+    setSeconds(deadline.current === null ? null : secondsRemaining(deadline.current, performance.now()));
     setSnapshot(next);
     if (next.result?.complete) recordResult(next);
   }, []);
@@ -141,8 +143,9 @@ export function ChroniclePlay() {
     pending.current = true;
     setBusy(true);
     try {
+      const requestedAt = performance.now();
       const next = await startRun(nextMode);
-      if (generation.current === token) publish(next);
+      if (generation.current === token) publish(next, requestedAt);
       else abandonRun(next);
     } catch {
       if (generation.current !== token) return;
@@ -169,6 +172,7 @@ export function ChroniclePlay() {
     setRetry(null);
     setBusy(true);
     try {
+      const requestedAt = performance.now();
       const next = await roundAction(previous, action, order);
       if (generation.current !== token) {
         // Navigation may have abandoned the previous round while this transition opened a new one.
@@ -180,7 +184,7 @@ export function ChroniclePlay() {
         const cardName = next.cards.find((card) => card.id === focus.id)?.name;
         setAnnouncement(`${cardName ?? "Card"} moved to position ${next.order.indexOf(focus.id) + 1}.`);
       }
-      publish(next);
+      publish(next, requestedAt);
     } catch (error) {
       if (generation.current !== token) return;
       problem.current = true;
@@ -244,7 +248,7 @@ export function ChroniclePlay() {
     if (snapshot?.deadlineMs == null || resolved) return;
     const tick = () => {
       if (deadline.current === null) return;
-      const remaining = Math.max(0, Math.ceil((deadline.current - performance.now()) / 1_000));
+      const remaining = secondsRemaining(deadline.current, performance.now());
       setSeconds(remaining);
       if (remaining === 0 && !pending.current && !problem.current) void perform("expire");
     };

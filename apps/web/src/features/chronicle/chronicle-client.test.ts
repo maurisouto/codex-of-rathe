@@ -5,6 +5,7 @@ import {
   moveInOrder,
   parseSavedResult,
   roundAction,
+  secondsRemaining,
   saveCompletedResult,
   startRun,
   type RoundResult,
@@ -58,6 +59,17 @@ describe("Chronicle board", () => {
     expect(deadlineFromServer({ deadlineMs: 32_000, serverNowMs: 2_000 }, 71)).toBe(30_071);
     expect(deadlineFromServer({ deadlineMs: 32_000, serverNowMs: 37_000 }, 125)).toBe(125);
     expect(deadlineFromServer({ deadlineMs: null, serverNowMs: 2_000 }, 71)).toBeNull();
+  });
+
+  it("never adds time after delayed ready or move responses", () => {
+    const deadline = deadlineFromServer({ deadlineMs: 32_000, serverNowMs: 2_000 }, 100);
+    expect(deadline).toBe(30_100);
+    expect(secondsRemaining(deadline!, 3_100)).toBe(27);
+
+    const afterMove = deadlineFromServer({ deadlineMs: 32_000, serverNowMs: 3_000 }, 1_200, deadline);
+    expect(afterMove).toBe(deadline);
+    expect(secondsRemaining(afterMove!, 5_100)).toBe(25);
+    expect(secondsRemaining(afterMove!, 31_100)).toBe(0);
   });
 
   it("sends mode and opaque order only, with no account or answer data", async () => {

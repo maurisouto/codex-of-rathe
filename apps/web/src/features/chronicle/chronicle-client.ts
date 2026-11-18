@@ -168,9 +168,16 @@ export function moveInOrder(order: readonly string[], id: string, direction: -1 
 
 export function deadlineFromServer(
   { deadlineMs, serverNowMs }: Pick<Snapshot, "deadlineMs" | "serverNowMs">,
-  receivedAt: number,
+  requestedAt: number,
+  previousDeadline: number | null = null,
 ) {
-  return deadlineMs === null ? null : receivedAt + Math.max(0, deadlineMs - serverNowMs);
+  if (deadlineMs === null) return null;
+  const estimated = requestedAt + Math.max(0, deadlineMs - serverNowMs);
+  return previousDeadline === null ? estimated : Math.min(previousDeadline, estimated);
+}
+
+export function secondsRemaining(deadline: number, now: number) {
+  return Math.max(0, Math.ceil((deadline - now) / 1_000));
 }
 
 export function elapsedLabel(elapsedMs: number) {
