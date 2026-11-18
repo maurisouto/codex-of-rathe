@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { createHash, randomUUID } from "node:crypto";
+import { readFileSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import sharp from "sharp";
@@ -10,8 +10,9 @@ import { buildChroniclePool, generateChronicleRounds, makeChronicleFixture, isPr
 const base = process.argv[2];
 const asOf = process.argv[3];
 const output = process.argv[4];
+const indexPath = process.argv[5];
 if (!base || !asOf || !output) {
-  throw new Error("Usage: tsx scripts/chronicle/audit.ts <package installation directory> <as-of YYYY-MM-DD> <output directory>");
+  throw new Error("Usage: tsx scripts/chronicle/audit.ts <package installation directory> <as-of YYYY-MM-DD> <output directory> [index path]");
 }
 
 const requirePackage = createRequire(resolve(base, "package.json"));
@@ -101,6 +102,44 @@ function distance(a: Buffer, b: Buffer) {
 }
 
 const assets = new Map<string, Asset>();
+const canonicalUrls = new Map<string, string>();
+
+function assetReleaseKey(assetId: string, release: string) {
+  return JSON.stringify([assetId, release]);
+}
+
+async function writeIndex(path: string, playable: ReturnType<typeof buildChroniclePool>["entries"]) {
+  const ids = new Set<string>();
+  const dates = new Set<string>();
+  const entries = [];
+  for (const { id, name, date, release, imageUrl } of playable) {
+    const asset = assets.get(imageUrl);
+    const fullImageUrl = canonicalUrls.get(assetReleaseKey(imageUrl, release));
+    if (!/^[a-f0-9]{64}$/.test(id) || ids.has(id) || !name || !release ||
+        releaseDay(release) !== date || !asset || !fullImageUrl) {
+      throw new Error("Cannot publish an invalid Chronicle entry");
+    }
+    const crop = await sharp(asset.crop)
+      .resize({ width: 360, withoutEnlargement: true })
+      .webp({ quality: 75 })
+      .toBuffer();
+    entries.push({
+      id, name, date, release, fullImageUrl,
+      cropDataUrl: `data:image/webp;base64,${crop.toString("base64")}`,
+    });
+    ids.add(id);
+    dates.add(date);
+  }
+  if (dates.size < 8) throw new Error("Cannot publish an incomplete Chronicle index");
+  const target = resolve(path);
+  const temporary = `${target}.tmp-${randomUUID()}`;
+  try {
+    writeFileSync(temporary, JSON.stringify({ version: 1, entries }, null, 2) + "\n", { flag: "wx" });
+    renameSync(temporary, target);
+  } finally {
+    rmSync(temporary, { force: true });
+  }
+}
 
 async function auditFamily(name: string, rows: Row[]) {
   const commercial = rows.filter((row) => !isPromoPrinting({ release: row.setKey, rarity: row.printing.rarity }));
@@ -148,7 +187,12 @@ async function auditFamily(name: string, rows: Row[]) {
       for (const i of group) {
         const assetId = digest(art[i]!.full);
         assets.set(assetId, art[i]!);
-        verified.set(assetRows[i], { fingerprint, imageUrl: assetId });
+        const row = assetRows[i];
+        const key = assetReleaseKey(assetId, row.setKey);
+        const source = resolveCatalogCardArtUrl(row.imageUrl, row.printing);
+        const previous = canonicalUrls.get(key);
+        if (!previous || source < previous) canonicalUrls.set(key, source);
+        verified.set(row, { fingerprint, imageUrl: assetId });
       }
     }
   }
@@ -246,6 +290,7 @@ async function main() {
   };
   writeFileSync(resolve(output, "report.json"), JSON.stringify(report, null, 2) + "\n");
   if (failure) throw new Error(failure);
+  if (indexPath) await writeIndex(indexPath, playable);
 }
 
 main().catch((error) => {

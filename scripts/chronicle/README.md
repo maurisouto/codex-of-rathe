@@ -57,3 +57,16 @@ Both runs produced a shuffled display permutation at all six levels, with separa
 | PEN319 is separate. ANQ009 is a promo pseudo-release even though its rarity field says Legendary. | Compendium of Rathe, 2026-02-13 |
 
 The date of the History Pack 1 reprint is 2022-05-06. It does not change the Arcane Rising debut date. Promo evidence cannot establish an earlier commercial date. The two catalog versions differ in the capitalization of the Compendium of Rathe release label.
+
+## Refresh the game index
+
+The API uses a checked-in, server-only index at `apps/api/src/server/chronicle/index.generated.json`. It contains all accepted entries for the sampled pool, including embedded WebP crops that remain available independently of live CDN requests. Full-card URLs were verified when the index was generated and can still become unavailable later.
+
+Generate a candidate from the current repository lockfile. Passing a fifth argument writes the validated index after the sampled pool can produce a complete Streak run. The generator replaces the target atomically, so a failed audit or export preserves any previous index.
+
+```sh
+audit_root=$(mktemp -d)
+node_modules/.bin/tsx scripts/chronicle/audit.ts . "$(date -u +%F)" "$audit_root/evidence" "$audit_root/index.generated.json"
+```
+
+The **Verify Chronicle index refresh** workflow runs weekly when present on the repository default branch, with a manual trigger available under GitHub's workflow dispatch rules. It generates a candidate without changing the shared card dependencies, compares coverage with the checked-in index, and uploads the candidate and audit report. After a successful run, promote the candidate by replacing the tracked index in an ordinary PR. The previous validated index remains the runtime input until promotion. No card-by-card approval is required. A failed run or a candidate with unacceptable coverage leaves the checked-in index in place.

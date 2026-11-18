@@ -1,0 +1,44 @@
+name: Verify Chronicle index refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: node --test scripts/chronicle/generator.test.mjs
+      - name: Generate and verify a fresh candidate
+        shell: bash
+        run: |
+          node_modules/.bin/tsx scripts/chronicle/audit.ts . "$(date -u +%F)" "$RUNNER_TEMP/chronicle-audit" "$RUNNER_TEMP/index.generated.json"
+          node -e '
+            const previous = require("./apps/api/src/server/chronicle/index.generated.json").entries;
+            const candidate = require(process.argv[1]).entries;
+            const days = (entries) => new Set(entries.map(({date}) => date)).size;
+            console.log("## Chronicle index");
+            console.log("");
+            console.log(`- Current: ${previous.length} illustrations on ${days(previous)} dates`);
+            console.log(`- Candidate: ${candidate.length} illustrations on ${days(candidate)} dates`);
+          ' "$RUNNER_TEMP/index.generated.json" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chronicle-index-candidate
+          path: |
+            ${{ runner.temp }}/index.generated.json
+            ${{ runner.temp }}/chronicle-audit/report.json
+          if-no-files-found: error
