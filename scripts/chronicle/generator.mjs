@@ -20,6 +20,23 @@ function isDate(date) {
     && new Date(date).toISOString().startsWith(date + "T");
 }
 
+export function indexCommercialReleaseDays(releases) {
+  const days = new Map();
+  for (const record of releases) {
+    const release = record?.release;
+    if (typeof release !== "string" || !release.trim()) continue;
+
+    const timestamp = typeof record.releaseDate === "string" ? record.releaseDate : "";
+    const match = /^(\d{4}-\d{2}-\d{2})(?: (?:[01]\d|2[0-3]):[0-5]\d)?$/.exec(timestamp);
+    const validType = typeof record.releaseType === "string" && record.releaseType.trim();
+    const candidate = validType && isDate(match?.[1]) ? match[1] : null;
+    // Once a named release has a malformed row or conflicting day, it stays undated.
+    if (!days.has(release)) days.set(release, candidate);
+    else if (days.get(release) !== candidate) days.set(release, null);
+  }
+  return days;
+}
+
 function isDistinctArt(a, b) {
   return (a.alternateArt || b.alternateArt)
     && a.artists.length > 0

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildChroniclePool, generateChronicleRounds, makeChronicleFixture } from "./generator.mjs";
+import { buildChroniclePool, generateChronicleRounds, indexCommercialReleaseDays, makeChronicleFixture } from "./generator.mjs";
 
 // Synthetic input exercises the rules independently of the changing catalog and CDN.
 function printing(overrides = {}) {
@@ -147,4 +147,24 @@ test("never selects the same opaque illustration ID twice even if the input date
   assert.deepEqual(rounds, generateChronicleRounds([...input].reverse(), { roundSizes: [3] }));
   assert.equal(new Set(rounds[0].map(({ id }) => id)).size, 3);
   assert.ok(!rounds[0].includes(repeated));
+});
+
+
+test("a valid release row cannot mask a malformed or conflicting row", () => {
+  const valid = { release: "Launch", releaseType: "Standalone Booster", releaseDate: "2020-10-02 12:00" };
+  const matching = { ...valid, releaseDate: "2020-10-02" };
+  assert.equal(indexCommercialReleaseDays([valid, matching]).get("Launch"), "2020-10-02");
+
+  const invalidRows = [
+    { ...valid, releaseDate: "2020-10-03" },
+    { ...valid, releaseDate: "2020-02-30" },
+    { ...valid, releaseDate: "2020-10-02 25:00" },
+    { ...valid, releaseDate: undefined },
+    { ...valid, releaseType: undefined },
+  ];
+  for (const invalid of invalidRows) {
+    for (const rows of [[valid, invalid, matching], [invalid, valid, matching]]) {
+      assert.equal(indexCommercialReleaseDays(rows).get("Launch"), null);
+    }
+  }
 });

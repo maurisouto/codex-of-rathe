@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import sharp from "sharp";
 import { buildCatalogFromFaBCards } from "../../apps/api/src/server/services/card-catalog-service";
 import { resolveCatalogCardArtUrl } from "../../apps/api/src/lib/card-art-url";
-import { buildChroniclePool, generateChronicleRounds, makeChronicleFixture, isPromoPrinting } from "./generator.mjs";
+import { buildChroniclePool, generateChronicleRounds, makeChronicleFixture, isPromoPrinting, indexCommercialReleaseDays } from "./generator.mjs";
 
 const base = process.argv[2];
 const asOf = process.argv[3];
@@ -26,20 +26,8 @@ const digest = (value: string | Buffer) => createHash("sha256").update(value).di
 function packageVersion(name: string): string {
   return JSON.parse(readFileSync(resolve(dirname(requirePackage.resolve(name)), "../package.json"), "utf8")).version;
 }
-const releaseDates = new Map<string, Set<string>>();
-for (const release of publishedReleases) {
-  if (typeof release.release !== "string" || !release.releaseType) continue;
-  const match = /^(\d{4}-\d{2}-\d{2})(?: \d{2}:\d{2})?$/.exec(release.releaseDate ?? "");
-  if (!match) continue;
-  const dates = releaseDates.get(release.release) ?? new Set<string>();
-  dates.add(match[1]);
-  releaseDates.set(release.release, dates);
-}
-
-function releaseDay(release: string) {
-  const dates = releaseDates.get(release);
-  return dates?.size === 1 ? [...dates][0] : null;
-}
+const releaseDates = indexCommercialReleaseDays(publishedReleases);
+const releaseDay = (release: string): string | null => releaseDates.get(release) ?? null;
 
 type Row = (typeof allCards)[number];
 const names = new Set(allCards.map((row) => row.name.trim().toLowerCase()));
