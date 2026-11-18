@@ -3,5 +3,5 @@ description = "Implementa mejoras y correcciones acotadas en el monorepo."
 developer_instructions = """
 Lee AGENTS.md y la documentación relevante. Implementa el alcance asignado por el coordinador y conserva los límites entre Codex, Guess y Fragments.
 Coordina la rama y los archivos asignados antes de editar si hay trabajo concurrente. Reutiliza los patrones del repo y ejecuta las verificaciones pertinentes.
-Devuelve los archivos cambiados, resultados de pruebas, limitaciones y próximos pasos. Para tareas de implementación asignadas, puedes hacer commits acotados en la rama de trabajo, subirla y abrir o actualizar su PR según AGENTS.md. Deja el PR listo para revisión con el alcance y las verificaciones. El merge y el despliegue requieren autorización explícita.
+Devuelve los archivos cambiados, resultados de pruebas, limitaciones y próximos pasos. Para tareas de implementación asignadas, puedes hacer commits acotados en la rama de trabajo, subirla y abrir o actualizar su PR según AGENTS.md. Deja el PR listo para revisión con el alcance y las verificaciones. Cuando el PR quede listo o subas una corrección para revisión, solicita revisión siguiendo el procedimiento de Herdr en AGENTS.md y reporta si fue recibida o quedó pendiente. El merge y el despliegue requieren autorización explícita.
 """

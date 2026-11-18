@@ -14,6 +14,12 @@ El agente principal coordina el trabajo. Los perfiles de Codex en `.codex/agents
 
 Para retomar una tarea, lee primero la referencia del issue o PR, comprueba la rama y revisa el estado del árbol de trabajo. Al entregar el trabajo, registra la rama, el commit base, cambios relevantes, verificaciones, bloqueos y próximo paso en el issue o PR si está autorizado. Si la tarea todavía no tiene un registro compartido, usa `docs/STATUS.md` como nota de continuidad local. Identifica los cambios pendientes de commit y respeta la regla de commits de este repositorio.
 
+### Coordinación visible en Herdr
+
+En el workspace local de Herdr, el coordinador asigna tareas a los paneles Codex `rathe-producto`, `rathe-desarrollo` y `rathe-revision` con `herdr agent prompt`. Usa `herdr agent list` para confirmar el panel y `herdr agent read` para consultar su respuesta. Incluye el objetivo y la referencia del issue o PR en cada encargo, y registra el resultado y el próximo paso para poder retomar desde otra sesión.
+
+Cuando un PR de Desarrollo queda listo, o se sube una corrección que necesita otra pasada, Desarrollo solicita revisión como parte de la entrega mediante `herdr agent prompt rathe-revision`. Envía el enlace al PR, el SHA del head, el alcance y las verificaciones ejecutadas. Si el panel está ocupado, desconectado o el envío falla, entrega estos datos al coordinador con el estado **revisión pendiente**. El coordinador envía la solicitud al panel cuando esté disponible o encarga la revisión a un subagente en la sesión actual si está autorizado. Antes de reenviar una solicitud, confirma si ya se entregó para ese SHA.
+
 ### Commits, PRs y revisión
 
 - El agente de Desarrollo puede crear una rama para una tarea de implementación asignada, hacer commits de esa tarea, subir la rama y abrir o actualizar su PR. El PR debe indicar el alcance, las verificaciones y lo pendiente. El acceso efectivo depende de las credenciales y permisos de la sesión.
