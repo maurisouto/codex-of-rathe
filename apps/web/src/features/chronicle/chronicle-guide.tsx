@@ -20,13 +20,13 @@ const scenes = [
   {
     order: [0, 1, 2],
     title: "Trace the timeline",
-    description: <>Arrange the art from earliest to latest with <strong>Earlier</strong> and <strong>Later</strong>. Select <strong>Lock order</strong> to seal your answer.</>,
+    description: <>Arrange the art from earliest to latest with <strong>Earlier</strong> and <strong>Later</strong>. Cards with the same release date can go in any order within that date. Select <strong>Lock order</strong> to seal your answer.</>,
     note: "Move Snatch earlier",
   },
   {
     order: [0, 1, 2],
     title: "Unveil the record",
-    description: "A correct order opens the next chapter with one more card. One wrong order ends the streak.",
+    description: "A correct order opens a fresh board with one more position. Card names never repeat in the same streak. One wrong order ends the run.",
     note: "Level cleared · Next round: four cards",
   },
 ];
@@ -35,6 +35,7 @@ const faq = [
   ["Where does an illustration’s story begin?", "The chronicle dates each illustration to its first documented release in an official commercial set."],
   ["Can one card have two histories?", "Distinct alternate art begins a new entry with its own date. Reprints, foil editions, and new borders share the original illustration’s earliest commercial date."],
   ["Do promos enter the chronicle?", "Promotional releases leave no date in the record. If the same art later appears in a commercial set, that first commercial release counts."],
+  ["What if two illustrations share a date?", "In every mode, cards released on the same day can appear in any order within that day."],
   ["What lies beyond the veil?", "Only the illustration and card name are visible during play. The result reveals the full card, collector details, set, and release date."],
   ["What does the chronicle remember?", "Your browser keeps your latest completed run. Streak keeps the highest level you cleared. Timed keeps the outcome. Untimed records elapsed time only for a correct order."],
 ];

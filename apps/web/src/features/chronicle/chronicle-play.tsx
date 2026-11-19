@@ -436,16 +436,16 @@ export function ChroniclePlay() {
           {snapshot.mode === "streak" && (
             <p>{snapshot.result.complete
               ? highestLevelLabel(snapshot.result.highestLevel)
-              : "The next level adds one illustration."}</p>
+              : "The next level opens a fresh board with one more position."}</p>
           )}
           {snapshot.result.elapsedMs !== null && snapshot.mode === "untimed" && (
             <p>Elapsed time: <span className={styles.number}>{elapsedLabel(snapshot.result.elapsedMs)}</span></p>
           )}
           <p>{snapshot.result.outcome === "timeout"
             ? "The timeline compares your order when the clock ran out."
-            : "The timeline compares your submitted positions with the correct release order."}</p>
+            : "The timeline shows where your submitted cards fall by release date. Cards with the same date can go in any order."}</p>
           <div className={styles.axis}><span>Earliest release</span><i aria-hidden="true" /><span>Latest release</span></div>
-          <ol className={styles.cards} style={cardColumns(snapshot.result.cards.length)} aria-label="Correct release order">
+          <ol className={styles.cards} style={cardColumns(snapshot.result.cards.length)} aria-label="Release timeline">
             {snapshot.result.cards.map((card, position) => (
               <li key={`${snapshot.roundId}:${card.id}`} className={styles.card}>
                 <small>Position <span className={styles.number}>{position + 1}</span> · Yours <span className={styles.number}>{card.submittedPosition}</span></small>

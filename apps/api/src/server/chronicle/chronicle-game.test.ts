@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createChronicleGame, type ChronicleAction, type ChronicleEntry } from "./chronicle-game";
+import { CHRONICLE_MODES, createChronicleGame, type ChronicleAction, type ChronicleEntry } from "./chronicle-game";
 
-const entries: ChronicleEntry[] = Array.from({ length: 10 }, (_, i) => ({
+const entries: ChronicleEntry[] = Array.from({ length: 36 }, (_, i) => ({
   id: `index-${i}`,
   name: `Illustration ${i}`,
-  date: `2020-01-${String(i + 1).padStart(2, "0")}`,
+  date: new Date(Date.UTC(2020, 0, i + 1)).toISOString().slice(0, 10),
   release: `Release ${i}`,
   cropDataUrl: "data:image/webp;base64,AAAA",
   fullImageUrl: `https://product-images.tcgplayer.com/${i}.jpg`,
@@ -19,21 +19,28 @@ function fixture(source = entries, maxRuns = 10) {
     if (!("roundId" in response)) throw new Error("Expected a snapshot");
     return response;
   };
-  const answer = (state: Snapshot) => [...state.cards].sort((a, b) => a.name.localeCompare(b.name))
+  const dates = new Map(source.map(({ name, date }) => [name, date]));
+  const answer = (state: Snapshot) => [...state.cards]
+    .sort((a, b) => dates.get(a.name)!.localeCompare(dates.get(b.name)!))
     .map(({ id }) => id);
   return { game, act, answer, advance: (ms: number) => { time += ms; } };
 }
 
 describe("Chronicle progression", () => {
-  it("retains cards across six nested levels, adds one at a time, and finishes at eight", () => {
-    const { game, act, answer } = fixture();
+  it("deals six independent boards with 33 distinct card families", () => {
+    const duplicate = { ...entries[0], id: "alternate", name: "  illustration   0  " };
+    const { game, act, answer } = fixture([entries[0], duplicate, ...entries.slice(1)]);
     let state = game.start("streak");
-    let previous: string[] = [];
+    const families = new Set<string>();
     for (let level = 1; level <= 6; level++) {
       expect(state.level).toBe(level);
       expect(state.cards).toHaveLength(level + 2);
       expect(state.order).not.toEqual(answer(state));
-      expect(state.order).toEqual(expect.arrayContaining(previous));
+      for (const { name } of state.cards) {
+        const family = name.trim().replace(/\s+/g, " ").toLowerCase();
+        expect(families.has(family)).toBe(false);
+        families.add(family);
+      }
       expect(state.result).toBeNull();
       expect(state.ready).toBe(false);
       expect(() => act(state, "submit", answer(state))).toThrow("still loading");
@@ -41,8 +48,7 @@ describe("Chronicle progression", () => {
       state = act(state, "submit", answer(state));
       expect(state.result).toMatchObject({ outcome: "correct", highestLevel: level, complete: level === 6 });
       const reveal = state.result!.cards;
-      expect(reveal.map((card) => card.date)).toEqual([...new Set(reveal.map((card) => card.date))].sort());
-      previous = state.order;
+      expect(reveal.map((card) => card.date)).toEqual(reveal.map((card) => card.date).sort());
       if (level < 6) {
         const current = act(state, "next");
         expect(act(state, "next")).toEqual(current);
@@ -51,6 +57,7 @@ describe("Chronicle progression", () => {
         expect(() => act(state, "next")).toThrow("no next level");
       }
     }
+    expect(families.size).toBe(33);
   });
 
   it("stops after the first miss and retains only completed levels", () => {
@@ -82,10 +89,18 @@ describe("Chronicle progression", () => {
     expect(() => act(second, "ready")).toThrow("no longer available");
   });
 
-  it("fails closed before starting a Streak run with insufficient dates, even with extra cards", () => {
-    const { game } = fixture(entries.map((row, i) => ({ ...row, date: entries[i % 7].date })));
+  it("fails closed when extra illustrations and guide examples do not make 33 playable families", () => {
+    const duplicate = { ...entries[0], id: "alternate", name: " Ｉllustration   0 " };
+    const guide = { ...entries[32], name: " Snatch " };
+    const { game } = fixture([...entries.slice(0, 32), duplicate, guide]);
     expect(() => game.start("streak")).toThrow("enough verified illustrations");
     expect(game.start("untimed").cards).toHaveLength(3);
+  });
+
+  it("can play with fewer than eight distinct dates, including an all-tied board", () => {
+    const { game, act } = fixture(entries.map((entry) => ({ ...entry, date: "2020-01-01" })));
+    const state = act(game.start("streak"), "ready");
+    expect(act(state, "submit", [...state.order].reverse()).result?.outcome).toBe("correct");
   });
 
   it("excludes dated teaching examples, expires idle runs and frees abandoned capacity", () => {
@@ -103,6 +118,24 @@ describe("Chronicle progression", () => {
 });
 
 describe("Chronicle timing and results", () => {
+  it.each(CHRONICLE_MODES)("accepts either tied order and rejects a date inversion in %s", (mode) => {
+    const source = entries.map((row, i) => i === 1 ? { ...row, date: entries[0].date } : row);
+    const { game, act } = fixture(source);
+    for (const names of [
+      [entries[0].name, entries[1].name, entries[2].name],
+      [entries[1].name, entries[0].name, entries[2].name],
+      [entries[0].name, entries[2].name, entries[1].name],
+    ]) {
+      const state = act(game.start(mode), "ready");
+      const submitted = names.map((name) => state.cards.find((card) => card.name === name)!.id);
+      const correct = names[2] === entries[2].name;
+      const result = act(state, "submit", submitted).result!;
+      expect(result.outcome).toBe(correct ? "correct" : "incorrect");
+      expect(result.cards.map((card) => card.date)).toEqual([entries[0].date, entries[0].date, entries[2].date]);
+      if (correct) expect(result.cards.map((card) => card.id)).toEqual(submitted);
+    }
+  });
+
   it("starts the clock only when ready and snapshots order strictly before the deadline", () => {
     const { game, act, answer, advance } = fixture();
     let state = game.start("timed");
@@ -135,7 +168,7 @@ describe("Chronicle timing and results", () => {
     expect(act(state, "submit", state.order).result).toEqual(win.result);
   });
 
-  it("scores one Untimed round and reveals elapsed time only on an exact match", () => {
+  it("scores one Untimed round and reveals elapsed time only on a correct order", () => {
     const { game, act, answer, advance } = fixture();
     const win = act(game.start("untimed"), "ready");
     advance(7_500);
