@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import {
   type CSSProperties,
   type FormEvent,
@@ -297,12 +296,7 @@ export function ChroniclePlay() {
   }
 
   return (
-    <div className={styles.chronicle}>
-      <nav className={styles.nav} aria-label="Chronicle">
-        <Link href="/" onClick={() => reset(false)}><span aria-hidden="true">←&nbsp;</span>Back to Codex hub</Link>
-        {!snapshot && <div><a href="#modes">Modes</a><a href="#how">How to play</a><a href="#faq">FAQ</a></div>}
-      </nav>
-
+    <div className={styles.chronicle} data-chronicle-setup={snapshot ? undefined : ""}>
       {!snapshot && (
         <>
           <header className={styles.hero}>
@@ -356,7 +350,7 @@ export function ChroniclePlay() {
               <h1 id="chronicle-round-title" ref={heading} tabIndex={-1}>Order the artwork</h1>
             </div>
             {seconds !== null && (
-              <span className={styles.clock} role="timer" aria-label="Time remaining">{seconds}s left</span>
+              <span className={styles.clock} role="timer" aria-label="Time remaining"><span className={styles.number}>{seconds}</span>s left</span>
             )}
           </header>
           <div className={styles.axis}>
@@ -374,7 +368,7 @@ export function ChroniclePlay() {
               if (!card) return null;
               return (
                 <li key={`${snapshot.roundId}:${id}`} data-card-id={id} className={styles.card}>
-                  <small>Position {position + 1}</small>
+                  <small>Position <span className={styles.number}>{position + 1}</span></small>
                   <Image
                     unoptimized
                     src={card.cropDataUrl}
@@ -441,7 +435,7 @@ export function ChroniclePlay() {
               : "The next level adds one illustration."}</p>
           )}
           {snapshot.result.elapsedMs !== null && snapshot.mode === "untimed" && (
-            <p>Elapsed time: {elapsedLabel(snapshot.result.elapsedMs)}</p>
+            <p>Elapsed time: <span className={styles.number}>{elapsedLabel(snapshot.result.elapsedMs)}</span></p>
           )}
           <p>{snapshot.result.outcome === "timeout"
             ? "The timeline compares your order when the clock ran out."
@@ -450,7 +444,7 @@ export function ChroniclePlay() {
           <ol className={styles.cards} style={cardColumns(snapshot.result.cards.length)} aria-label="Correct release order">
             {snapshot.result.cards.map((card, position) => (
               <li key={`${snapshot.roundId}:${card.id}`} className={styles.card}>
-                <small>Position {position + 1} · Yours {card.submittedPosition}</small>
+                <small>Position <span className={styles.number}>{position + 1}</span> · Yours <span className={styles.number}>{card.submittedPosition}</span></small>
                 <ResultArt card={card} />
                 <h2>{card.name}</h2>
                 <time dateTime={card.date}>{dateFormat.format(new Date(card.date))}</time>
