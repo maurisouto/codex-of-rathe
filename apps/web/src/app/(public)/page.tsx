@@ -136,7 +136,11 @@ export default function HubHomePage() {
 
           <Panel
             variant="subtle"
-            className="relative overflow-hidden border border-[#BE8455]/45 bg-[radial-gradient(ellipse_at_top_right,#6b422c_0%,transparent_64%),linear-gradient(155deg,#31221c,#1b1717_76%)] p-6 shadow-[0_0_28px_rgba(192,132,83,0.12)] sm:p-8"
+            className={cn(
+              "relative overflow-hidden border border-[#BE8455]/45 bg-[radial-gradient(ellipse_at_top_right,#6b422c_0%,transparent_64%),linear-gradient(155deg,#31221c,#1b1717_76%)] p-6 shadow-[0_0_28px_rgba(192,132,83,0.12)] sm:p-8",
+              "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
+              "hover:border-[#DEAD82]/60 hover:shadow-[0_0_36px_rgba(192,132,83,0.20),0_0_22px_rgba(242,188,112,0.12)]",
+            )}
           >
             <div className="flex items-center justify-center">
               <Image
