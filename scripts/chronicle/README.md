@@ -1,6 +1,6 @@
 # Chronicle of Rathe generator proof
 
-This isolated audit evaluates whether the repository's Flesh and Blood catalog and card image CDN can support six nested Streak rounds. Each round contains 3–8 verified illustrations with distinct first commercial release days. The script writes an opaque, shuffled display fixture and keeps the answer, full-card images, and release evidence in the audit output. Run this offline from the application; it does not change the hub or the live catalog.
+This isolated audit evaluates whether the repository's Flesh and Blood catalog and card image CDN can support six disjoint Streak rounds. Board sizes are 3, 4, 5, 6, 7, and 8. Across the run, all 33 entries have distinct normalized card names. Equal release days are allowed in either relative order. The script writes an opaque, shuffled display fixture and keeps the answer, full-card images, and release evidence in the audit output. Run this offline from the application; it does not change the hub or the live catalog.
 
 ## Run
 
@@ -22,12 +22,12 @@ Provide a fresh output directory for each run. The runner records the installed 
 - The existing playable catalog selects card families. All printings of those families are inspected before dating, including printings filtered from the playable pool. Promo rarity and the Promos, GEM, and Tournament Pack pseudo-releases are excluded first. The commercial day comes from the package's release registry. Unknown release days, conflicting days, and any malformed row for the named release exclude the family. Releases after the cutoff do not qualify.
 - The audit restricts the initial proof to standard Action layouts and samples 120 eligible names by stable name hash, plus Command and Conquer as an explicit audit case. This is a sample of the actual catalog. The coverage totals describe the sampled pool and cannot be extrapolated to the full catalog.
 - Image evidence uses the repository resolver and only its two default CDN origins. The audit requires a decodable full result image and an interior crop with sufficient dimensions and variation. It compares 48×40 RGB samples by mean absolute channel difference (MAD). Same-illustration candidates require MAD at most 5 and matching printing credits. Distinct groups require MAD at least 30, an explicit alternate-art treatment, and disjoint printing credits. Same-art groups must match pairwise. Missing images and inconclusive comparisons exclude the family.
-- The earliest qualifying date and its full image come from the same canonical printing. Collector codes never break chronological ties in a round. When fewer than eight dates remain, validation fails before offering a partial run.
+- The earliest qualifying date and its full image come from the same canonical printing. Collector codes never break chronological ties in a round. The tutorial card names Snatch, Art of War, and Channel Mount Heroic are excluded from playable draws and candidate indexes. When fewer than 33 eligible card families remain, validation fails before offering a partial run.
 - Crop geometry and MAD thresholds are conservative proof heuristics. They may discard valid crops, foil treatments, or true reprints and cannot establish a universal artwork identity. Only the sampled output and inspected assets support the gate.
 
-The output directory contains `display.json` with opaque IDs, names, and image references. `report.json` contains canonical release evidence, coverage, exclusions, asset mapping, and answers. Keep the report and full-card files on the audit side.
+The output directory contains `display.json` with opaque IDs, names, and image references. `report.json` contains canonical release evidence for all six boards, coverage, exclusions, asset mapping, and a chronological example order per board. Cards shown with the same day can be swapped without changing correctness. Keep the report and full-card files on the audit side.
 
-## Measured on 2026-11-18
+## Measured on 2026-11-19
 
 | Metric | Cards 3.6.239 / types 3.6.238 | Cards 7.3.20 / types 7.3.20 |
 | --- | ---: | ---: |
@@ -42,10 +42,11 @@ The output directory contains `display.json` with opaque IDs, names, and image r
 | Families excluded for ambiguous art | 14 | 23 |
 | Families excluded for unverified images | 8 | 0 |
 | Eligible illustrations / distinct dates | 100 / 20 | 101 / 26 |
-| Distinct dates beyond one eight-entry run | 12 | 18 |
-| Complete nested six-level run | Yes | Yes |
+| Eligible card families | 96 | 97 |
+| Boards containing tied dates in the six-level fixture | 3 | 4 |
+| Complete six-level run | Yes | Yes |
 
-Both runs produced a shuffled display permutation at all six levels, with separate answer arrays and both image files for each entry. A repeat on 7.3.20 produced byte-identical display and report JSON. At the fixed seed the first round uses Overload Script, Tempest Palm Gustwave, and Enlightened Strike. Both versions add Nourishing Emptiness, Jolly Bludger, and Command and Conquer at levels 2–4. The baseline then adds Meganetic Shockwave and Hit the High Notes, while the updated version adds Aether Dart and Agility Stance. The script emits the display and answer permutations and provenance for the selected seed.
+The audit chooses a shuffled starting order per board and avoids an already chronological display when two or more release days are present. An all-tied board is still valid. It emits each board's display, answer, asset mapping, and provenance for the selected seed.
 
 ### Command and Conquer
 
@@ -69,7 +70,7 @@ audit_root=$(mktemp -d)
 node scripts/chronicle/refresh-index.mjs "$(date -u +%F)" "$audit_root/candidate"
 ```
 
-The refresh accepts an explicit cutoff day and publishes the candidate directory only after the audit has validated the candidate and generated all six Streak rounds. An existing output directory is rejected. `source.json` records the registry, concrete versions, dependency constraint, tarball integrity, release source, and index SHA-256. Reproduce the source install by copying `catalog-package.json` and `catalog-package-lock.json` into an isolated directory as `package.json` and `package-lock.json`, then running `npm ci --ignore-scripts` there. Pass that directory and the recorded cutoff to `audit.ts`. Its optional fifth argument writes an index atomically, preserving any previous index if the audit or export fails.
+The refresh accepts an explicit cutoff day and publishes the candidate directory only after the audit has validated at least 33 eligible card families and generated all six disjoint Streak rounds. An existing output directory is rejected. `source.json` records the registry, concrete versions, dependency constraint, tarball integrity, release source, and index SHA-256. Reproduce the source install by copying `catalog-package.json` and `catalog-package-lock.json` into an isolated directory as `package.json` and `package-lock.json`, then running `npm ci --ignore-scripts` there. Pass that directory and the recorded cutoff to `audit.ts`. Its optional fifth argument writes an index atomically, preserving any previous index if the audit or export fails.
 
 The **Verify Chronicle index refresh** workflow runs weekly when present on the repository default branch, with a manual trigger available under GitHub's workflow dispatch rules. It compares candidate coverage with the checked-in index and uploads the index, audit report, and source provenance. Promote the candidate by replacing the tracked index in an ordinary PR. The previous validated index remains the runtime input until promotion. No card-by-card approval is required. A failed run or a candidate with unacceptable coverage leaves the checked-in index in place.
 

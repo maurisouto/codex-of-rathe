@@ -1,6 +1,7 @@
 import { randomInt, randomUUID } from "node:crypto";
 
 const STREAK_LEVELS = [3, 4, 5, 6, 7, 8] as const;
+export const STREAK_FAMILY_COUNT = STREAK_LEVELS.reduce((total, size) => total + size, 0);
 const TIMED_LIMIT_MS = 30_000;
 const RUN_TTL_MS = 60 * 60 * 1000;
 const MAX_RUNS = 1_000;
@@ -45,7 +46,6 @@ type Round = {
   id: string;
   cards: RunCard[];
   order: string[];
-  answer: RunCard[];
   startedAt: number | null;
   result: Result | null;
 };
@@ -77,37 +77,46 @@ function shuffle<T>(items: readonly T[], pick: (end: number) => number): T[] {
   return shuffled;
 }
 
+export function playableChronicleFamily(name: string): string | null {
+  const family = name.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+  return family && !GUIDE_NAMES.has(family) ? family : null;
+}
+
+function isChronological(cards: readonly RunCard[]): boolean {
+  return cards.every((card, index) => index === 0 || cards[index - 1].entry.date <= card.entry.date);
+}
+
 function generateRounds(
   entries: readonly ChronicleEntry[],
   mode: ChronicleMode,
   pick: (end: number) => number,
 ): Round[] {
   const sizes = mode === "streak" ? STREAK_LEVELS : [3];
-  const needed = sizes.at(-1)!;
+  const needed = mode === "streak" ? STREAK_FAMILY_COUNT : 3;
+  const families = new Set<string>();
   const selection: RunCard[] = [];
-  const dates = new Set<string>();
-  const illustrations = new Set<string>();
   for (const entry of shuffle(entries, pick)) {
-    if (GUIDE_NAMES.has(entry.name.trim().toLowerCase())) continue;
-    if (dates.has(entry.date) || illustrations.has(entry.id)) continue;
+    const family = playableChronicleFamily(entry.name);
+    if (!family || families.has(family)) continue;
+    families.add(family);
     selection.push({ id: randomUUID(), entry });
-    dates.add(entry.date);
-    illustrations.add(entry.id);
     if (selection.length === needed) break;
   }
   if (selection.length < needed) {
     throw new ChronicleError(503, "Chronicle does not have enough verified illustrations right now.");
   }
+
+  let offset = 0;
   return sizes.map((size) => {
-    const answer = selection.slice(0, size).sort((a, b) => a.entry.date.localeCompare(b.entry.date));
-    const cards = shuffle(answer, pick);
-    if (cards.every((card, index) => card.id === answer[index].id)) {
-      [cards[0], cards[1]] = [cards[1], cards[0]];
+    const cards = selection.slice(offset, offset + size);
+    offset += size;
+    if (isChronological(cards)) {
+      const later = cards.findIndex((card) => card.entry.date > cards[0].entry.date);
+      if (later !== -1) [cards[0], cards[later]] = [cards[later], cards[0]];
     }
     return {
       id: randomUUID(),
       cards,
-      answer,
       order: cards.map(({ id }) => id),
       startedAt: null,
       result: null,
@@ -120,21 +129,26 @@ function deadlineFor(mode: ChronicleMode, round: Round): number | null {
 }
 
 function resolveRound(run: Run, round: Round, now: number, expired: boolean): void {
-  const correct = !expired && round.answer.every(({ id }, index) => id === round.order[index]);
+  const byId = new Map(round.cards.map((card) => [card.id, card]));
+  const submitted = round.order.map((id) => byId.get(id)!);
+  const correct = !expired && isChronological(submitted);
   if (correct) run.highestLevel = run.level;
   round.result = {
     outcome: expired ? "timeout" : correct ? "correct" : "incorrect",
     complete: !correct || run.level === run.rounds.length,
     highestLevel: run.highestLevel,
     elapsedMs: correct && run.mode === "untimed" ? Math.max(0, now - round.startedAt!) : null,
-    cards: round.answer.map(({ id, entry }) => ({
-      id,
-      name: entry.name,
-      date: entry.date,
-      release: entry.release,
-      fullImageUrl: entry.fullImageUrl,
-      submittedPosition: round.order.indexOf(id) + 1,
-    })),
+    // Preserve the submitted relative order when release days tie.
+    cards: submitted
+      .map(({ id, entry }, index) => ({
+        id,
+        name: entry.name,
+        date: entry.date,
+        release: entry.release,
+        fullImageUrl: entry.fullImageUrl,
+        submittedPosition: index + 1,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
   };
 }
 

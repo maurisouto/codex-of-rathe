@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import type { ChronicleEntry } from "./chronicle-game";
+import { playableChronicleFamily, STREAK_FAMILY_COUNT, type ChronicleEntry } from "./chronicle-game";
 
 function isResultImage(value: unknown): value is string {
   if (typeof value !== "string") return false;
@@ -31,7 +31,7 @@ export function loadChronicleIndex(): readonly ChronicleEntry[] {
     if (!index || typeof index !== "object" || !("version" in index) || index.version !== 1 ||
       !("entries" in index) || !Array.isArray(index.entries) || !index.entries.every(isEntry) ||
       new Set(index.entries.map(({ id }) => id)).size !== index.entries.length ||
-      new Set(index.entries.map(({ date }) => date)).size < 8) {
+      new Set(index.entries.map(({ name }) => playableChronicleFamily(name)).filter(Boolean)).size < STREAK_FAMILY_COUNT) {
       throw new Error("Invalid Chronicle index.");
     }
     return index.entries;

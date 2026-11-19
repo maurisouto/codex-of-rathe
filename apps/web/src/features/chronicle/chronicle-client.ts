@@ -1,5 +1,5 @@
 export const MODES = {
-  streak: { title: "Streak", description: "Three cards open the chronicle. Set them in the right order and add another to the next chapter. Your first misstep closes the book." },
+  streak: { title: "Streak", description: "Six chapters await, each with a fresh board. Start with three cards and work your way up to eight. Your first misstep closes the book." },
   timed: { title: "Timed", description: "Race the hourglass. You have thirty seconds and one chance to put three cards in the order their art first appeared." },
   untimed: { title: "Untimed", description: "Trace the ages at your own pace in one three-card round. The chronicle records your time only if you get the order right." },
 } as const;

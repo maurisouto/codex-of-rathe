@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 import sharp from "sharp";
 import { buildCatalogFromFaBCards } from "../../apps/api/src/server/services/card-catalog-service";
 import { resolveCatalogCardArtUrl } from "../../apps/api/src/lib/card-art-url";
-import { buildChroniclePool, generateChronicleRounds, makeChronicleFixture, isPromoPrinting, indexCommercialReleaseDays } from "./generator.mjs";
+import { buildChroniclePool, generateChronicleRounds, makeChronicleFixture, isPromoPrinting, indexCommercialReleaseDays, isChronicleGuideName, normalizeChronicleName, CHRONICLE_STREAK_SIZES } from "./generator.mjs";
 
 const base = process.argv[2];
 const asOf = process.argv[3];
@@ -32,12 +32,12 @@ const releaseDates = indexCommercialReleaseDays(publishedReleases);
 const releaseDay = (release: string): string | null => releaseDates.get(release) ?? null;
 
 type Row = (typeof allCards)[number];
-const names = new Set(allCards.map((row) => row.name.trim().toLowerCase()));
+const names = new Set(allCards.map((row) => normalizeChronicleName(row.name)));
 const families = new Map<string, Row[]>();
 // The playable catalog selects eligible families. Include their otherwise filtered
 // printings as evidence so a foil or promo cannot silently shift the debut.
 for (const fabCard of cardPackage.cards as Row["fabCard"][]) {
-  const name = fabCard.name.trim().toLowerCase();
+  const name = normalizeChronicleName(fabCard.name);
   if (!names.has(name) || fabCard.isCardBack || fabCard.types?.some((type) => type === "Token")) continue;
   const family = families.get(name) ?? [];
   fabCard.printings.forEach((printing, printingIndex) => family.push({
@@ -110,8 +110,11 @@ function assetReleaseKey(assetId: string, release: string) {
 }
 
 async function writeIndex(path: string, playable: ReturnType<typeof buildChroniclePool>["entries"]) {
+  const families = new Set(playable.map((entry) => normalizeChronicleName(entry.name)));
+  const required = CHRONICLE_STREAK_SIZES.reduce((total, size) => total + size, 0);
+  if (families.size < required) throw new Error(`Cannot publish a Chronicle index with fewer than ${required} card families`);
+
   const ids = new Set<string>();
-  const dates = new Set<string>();
   const entries = [];
   for (const { id, name, date, release, imageUrl } of playable) {
     const asset = assets.get(imageUrl);
@@ -129,9 +132,7 @@ async function writeIndex(path: string, playable: ReturnType<typeof buildChronic
       cropDataUrl: `data:image/webp;base64,${crop.toString("base64")}`,
     });
     ids.add(id);
-    dates.add(date);
   }
-  if (dates.size < 8) throw new Error("Cannot publish an incomplete Chronicle index");
   const target = resolve(path);
   const temporary = `${target}.tmp-${randomUUID()}`;
   try {
@@ -240,14 +241,15 @@ async function main() {
   const sharedAcrossNames = new Set<string>();
   for (const [index, entry] of pool.entries.entries()) {
     for (const other of pool.entries.slice(index + 1)) {
-      if (entry.name === other.name) continue;
+      if (normalizeChronicleName(entry.name) === normalizeChronicleName(other.name)) continue;
       if (distance(assets.get(entry.imageUrl)!.pixels, assets.get(other.imageUrl)!.pixels) <= 5) {
         sharedAcrossNames.add(entry.id);
         sharedAcrossNames.add(other.id);
       }
     }
   }
-  const playable = pool.entries.filter((entry) => !sharedAcrossNames.has(entry.id));
+  const guideExcluded = pool.entries.filter((entry) => isChronicleGuideName(entry.name));
+  const playable = pool.entries.filter((entry) => !sharedAcrossNames.has(entry.id) && !isChronicleGuideName(entry.name));
   mkdirSync(output);
   let run = null;
   let failure = null;
@@ -255,9 +257,9 @@ async function main() {
   try {
     const rounds = generateChronicleRounds(playable, { seed: "chronicle-proof-v1" });
     run = makeChronicleFixture(rounds, { seed: "chronicle-proof-v1" });
-    canonicalEntries = rounds.at(-1);
+    canonicalEntries = rounds.flat();
     writeFileSync(resolve(output, "display.json"), JSON.stringify(run.display, null, 2) + "\n");
-    for (const entry of rounds.at(-1)!) {
+    for (const entry of canonicalEntries) {
       const asset = assets.get(entry.imageUrl)!;
       writeFileSync(resolve(output, `${entry.imageUrl}.crop.png`), asset.crop);
       writeFileSync(resolve(output, `${entry.imageUrl}.full`), asset.full);
@@ -283,7 +285,9 @@ async function main() {
     availableImages: (await Promise.all(allowedUrls.values())).filter(Boolean).length,
     coverage: pool.coverage,
     crossNameDuplicateExclusions: sharedAcrossNames.size,
+    guideArtworkExclusions: guideExcluded.length,
     playableArtworks: playable.length,
+    playableFamilies: new Set(playable.map((entry) => normalizeChronicleName(entry.name))).size,
     playableDates: new Set(playable.map((entry) => entry.date)).size,
     exclusions: pool.exclusions,
     commandAndConquer: audited.get("command and conquer"),
