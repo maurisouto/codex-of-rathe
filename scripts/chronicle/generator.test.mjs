@@ -102,37 +102,63 @@ test("new catalog revisions can add reprints or clarify earlier art without a ma
   assert.deepEqual(after.identifiers, ["added-reprint", "current", "discovered-original"]);
 });
 
-test("builds six nested rounds with unique dates and separate opaque display and answer data", () => {
-  const rows = Array.from({ length: 8 }, (_, index) => printing({
+test("builds six disjoint rounds with ties and separate opaque display data", () => {
+  const rows = Array.from({ length: 33 }, (_, index) => printing({
     name: "Card " + index,
     cardId: "card-" + index,
     identifier: "collector-" + index,
-    date: "2022-04-0" + (index + 1),
+    date: "2022-04-0" + (index % 3 + 1),
   }));
-  const tied = printing({ name: "Tied Card", cardId: "tied", date: rows[2].date });
-  const entries = buildChroniclePool([...rows, tied]).entries;
+  const entries = buildChroniclePool(rows).entries;
+  const alternatives = [
+    { ...entries[0], id: "same-name-alternate", name: "  " + entries[0].name.toUpperCase().replace(" ", "   ") },
+    ...["Snatch", "ART   OF WAR", " Channel Mount Heroic "].map((name, index) =>
+      ({ ...entries[0], name, id: "guide-" + index })),
+  ];
+  const input = [...entries, ...alternatives];
   const seed = "fixture";
-  const rounds = generateChronicleRounds(entries, { seed });
+  const rounds = generateChronicleRounds(input, { seed });
   assert.deepEqual(rounds.map((round) => round.length), [3, 4, 5, 6, 7, 8]);
-  assert.deepEqual(rounds, generateChronicleRounds([...entries].reverse(), { seed }));
-  assert.ok(rounds.every((round) => new Set(round.map((entry) => entry.date)).size === round.length));
-  assert.ok(rounds.every((round, index) => !index || rounds[index - 1].every((card) => round.includes(card))));
+  assert.deepEqual(rounds, generateChronicleRounds([...input].reverse(), { seed }));
+  const names = rounds.flat().map((entry) => entry.name.trim().replace(/\s+/g, " ").toLowerCase());
+  assert.equal(names.length, 33);
+  assert.deepEqual(new Set(names), new Set(entries.map((entry) => entry.name.toLowerCase())));
+  assert.equal(new Set(rounds.flat().map((entry) => entry.id)).size, 33);
+  assert.ok(rounds.some((round) => new Set(round.map(({ date }) => date)).size < round.length));
+
   const fixture = makeChronicleFixture(rounds, { seed });
   assert.deepEqual(fixture, makeChronicleFixture(rounds, { seed }));
   for (const [index, round] of fixture.display.entries()) {
-    assert.notDeepEqual(round.map((card) => card.id), fixture.answers[index]);
+    const answerDates = rounds[index].map(({ date }) => date);
+    const displayDates = round.map(({ id }) => rounds[index].find((entry) => entry.id === id).date);
+    assert.deepEqual([...answerDates].sort(), answerDates);
+    if (new Set(answerDates).size > 1) assert.notDeepEqual(displayDates, answerDates);
     assert.deepEqual(new Set(round.map((card) => card.id)), new Set(fixture.answers[index]));
     assert.ok(round.every((card) => Object.keys(card).sort().join() === "id,imageRef,name"));
     assert.ok(round.every((card) => fixture.assets[card.imageRef]));
   }
 });
 
-test("fails closed when ties leave fewer than eight dates for the six-round fixture", () => {
-  const entries = buildChroniclePool([
-    printing(),
-    printing({ cardId: "other", name: "Other" }),
-  ]).entries;
-  assert.throws(() => generateChronicleRounds(entries), /Insufficient distinct commercial release dates/);
+test("accepts a completely tied run without requiring a date inversion", () => {
+  const entries = Array.from({ length: 33 }, (_, index) => ({
+    ...printing({ name: "Card " + index }), id: "illustration-" + index,
+  }));
+  const rounds = generateChronicleRounds(entries);
+  const fixture = makeChronicleFixture(rounds);
+  assert.deepEqual(fixture.display.map((round) => round.length), [3, 4, 5, 6, 7, 8]);
+  assert.equal(new Set(rounds.flat().map(({ date }) => date)).size, 1);
+});
+
+test("fails closed when fewer than 33 eligible card families remain", () => {
+  const eligible = Array.from({ length: 32 }, (_, index) => ({
+    ...printing({ name: "Card " + index }), id: "illustration-" + index,
+  }));
+  const incomplete = [
+    ...eligible,
+    { ...eligible[0], id: "alternate", name: " CARD  0 " },
+    { ...eligible[0], id: "guide", name: "  Ｓｎａｔｃｈ " },
+  ];
+  assert.throws(() => generateChronicleRounds(incomplete), /Insufficient distinct card names.*33/);
 });
 
 test("never selects the same opaque illustration ID twice even if the input dates conflict", () => {

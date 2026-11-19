@@ -31,12 +31,15 @@ jobs:
             const output = process.argv[1];
             const candidate = require(output + "/index.generated.json").entries;
             const source = require(output + "/source.json");
+            const { isChronicleGuideName, normalizeChronicleName } = require("./scripts/chronicle/generator.mjs");
+            const families = (entries) => new Set(entries
+              .filter(({name}) => !isChronicleGuideName(name)).map(({name}) => normalizeChronicleName(name))).size;
             const days = (entries) => new Set(entries.map(({date}) => date)).size;
             console.log("## Chronicle index");
             console.log("");
-            console.log(`- Current: ${previous.length} illustrations on ${days(previous)} dates`);
+            console.log(`- Current: ${previous.length} illustrations, ${families(previous)} eligible families, ${days(previous)} dates`);
             console.log(`- Upstream: cards ${source.cards.version}, types ${source.types.version}`);
-            console.log(`- Candidate: ${candidate.length} illustrations on ${days(candidate)} dates`);
+            console.log(`- Candidate: ${candidate.length} illustrations, ${families(candidate)} eligible families, ${days(candidate)} dates`);
           ' "$RUNNER_TEMP/chronicle-candidate" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:

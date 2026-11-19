@@ -1,5 +1,16 @@
 import { createHash } from "node:crypto";
 
+export const CHRONICLE_STREAK_SIZES = [3, 4, 5, 6, 7, 8];
+const guideNames = new Set(["snatch", "art of war", "channel mount heroic"]);
+
+export function normalizeChronicleName(name) {
+  return name.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+export function isChronicleGuideName(name) {
+  return guideNames.has(normalizeChronicleName(name));
+}
+
 function compareText(a, b) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
@@ -95,7 +106,7 @@ export function buildChroniclePool(printings, { asOf } = {}) {
     }
 
     const row = { ...printing, artists: [...new Set(printing.artists ?? [])].sort(compareText) };
-    const nameKey = row.name.trim().toLowerCase();
+    const nameKey = normalizeChronicleName(row.name);
     if (!byName.has(nameKey)) byName.set(nameKey, []);
     byName.get(nameKey).push(row);
   }
@@ -156,7 +167,7 @@ export function buildChroniclePool(printings, { asOf } = {}) {
       undatedCards,
       unverifiedImageCards,
       eligibleArtworks: entries.length,
-      eligibleCards: new Set(entries.map((entry) => entry.name.trim().toLowerCase())).size,
+      eligibleCards: new Set(entries.map((entry) => normalizeChronicleName(entry.name))).size,
       eligibleReleaseDates: new Set(entries.map((entry) => entry.date)).size,
     },
   };
@@ -164,7 +175,7 @@ export function buildChroniclePool(printings, { asOf } = {}) {
 
 export function generateChronicleRounds(
   entries,
-  { seed = "chronicle-proof", roundSizes = [3, 4, 5, 6, 7, 8] } = {},
+  { seed = "chronicle-proof", roundSizes = CHRONICLE_STREAK_SIZES } = {},
 ) {
   if (!roundSizes.length || roundSizes.some((size) => !Number.isSafeInteger(size) || size < 2)) {
     throw new Error("Chronicle rounds require valid card counts");
@@ -176,21 +187,27 @@ export function generateChronicleRounds(
       || compareText(a.entry.id, b.entry.id)
       || compareText(a.entry.date, b.entry.date));
   const selected = [];
-  const usedDates = new Set();
+  const usedNames = new Set();
   const usedIds = new Set();
+  const required = roundSizes.reduce((sum, size) => sum + size, 0);
   for (const { entry } of ranked) {
-    if (!usedDates.has(entry.date) && !usedIds.has(entry.id)) {
-      selected.push(entry);
-      usedDates.add(entry.date);
-      usedIds.add(entry.id);
-    }
+    const name = normalizeChronicleName(entry.name);
+    if (!name || guideNames.has(name) || usedNames.has(name) || usedIds.has(entry.id)) continue;
+    selected.push(entry);
+    usedNames.add(name);
+    usedIds.add(entry.id);
+    if (selected.length === required) break;
+  }
+  if (selected.length !== required) {
+    throw new Error(`Insufficient distinct card names for Chronicle rounds (need ${required})`);
   }
 
-  if (selected.length < Math.max(...roundSizes)) {
-    throw new Error("Insufficient distinct commercial release dates for Chronicle rounds");
-  }
-
-  return roundSizes.map((size) => selected.slice(0, size).sort((a, b) => compareText(a.date, b.date)));
+  let offset = 0;
+  return roundSizes.map((size) => {
+    const round = selected.slice(offset, offset + size);
+    offset += size;
+    return round.sort((a, b) => compareText(a.date, b.date));
+  });
 }
 
 /** Projects separate display, answer, and asset data for the isolated audit. */
@@ -204,7 +221,8 @@ export function makeChronicleFixture(rounds, { seed = "chronicle-proof" } = {}) 
       compareText(hash([seed, index, a.id]), hash([seed, index, b.id]))
       || compareText(a.id, b.id)
     ));
-    if (shuffled.every((entry, position) => entry.id === answer[position])) {
+    const chronologicallySorted = shuffled.every((entry, position) => !position || shuffled[position - 1].date <= entry.date);
+    if (chronologicallySorted && shuffled[0].date !== shuffled.at(-1).date) {
       shuffled.push(shuffled.shift());
     }
     display.push(shuffled.map(({ id, name, imageUrl }) => {
