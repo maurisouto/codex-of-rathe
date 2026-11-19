@@ -87,7 +87,7 @@ export function FragmentsSetupPanel({
 
       <Panel
         variant="subtle"
-        className="border-[#2f7f5f]/28 bg-[linear-gradient(170deg,rgba(15,31,26,0.72),rgba(11,18,16,0.8))] p-5"
+        className="relative has-[button[aria-expanded=true]]:z-10 border-[#2f7f5f]/28 bg-[linear-gradient(170deg,rgba(15,31,26,0.72),rgba(11,18,16,0.8))] p-5"
       >
         <h3 className="font-codex text-base text-[#ddfeea]">Card pool</h3>
         <p className="mt-2 text-xs leading-relaxed text-[#8fbc9f]">
