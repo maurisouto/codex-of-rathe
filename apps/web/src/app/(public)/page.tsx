@@ -1,9 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
 import { FragmentsLogo } from "@/components/brand/fragments-logo";
 import { GameLogo } from "@/components/brand/game-logo";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
+import chronicleStyles from "@/features/chronicle/chronicle.module.css";
 import { cn } from "@/lib/utils/cn";
+
+const homeLogoHover = "motion-safe:transition-[filter] motion-safe:duration-300 hover:drop-shadow-[0_0_20px_rgba(201,162,39,0.5)]";
 
 export default function HubHomePage() {
   return (
@@ -36,7 +41,7 @@ export default function HubHomePage() {
           <p className="hidden text-xs text-[#93A7D4] sm:block">Choose an experience to enter.</p>
         </div>
 
-        <div className="grid gap-5 [grid-template-columns:repeat(auto-fit,minmax(20rem,1fr))]">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <Panel
             variant="textured"
             className={cn(
@@ -110,7 +115,10 @@ export default function HubHomePage() {
                 placement="header"
                 href="/puzzle"
                 openInNewTab
-                className="max-w-max [&_img]:object-center [&_img]:h-14 [&_img]:max-h-14 sm:[&_img]:h-16 sm:[&_img]:max-h-16"
+                className={cn(
+                  "max-w-max [&_img]:object-center [&_img]:h-14 [&_img]:max-h-14 hover:[&_img]:brightness-100 sm:[&_img]:h-16 sm:[&_img]:max-h-16",
+                  homeLogoHover,
+                )}
               />
             </div>
             <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#DDFEEA] sm:text-2xl">
@@ -130,6 +138,40 @@ export default function HubHomePage() {
                 </Link>
               </Button>
             </div>
+          </Panel>
+
+          <Panel
+            variant="subtle"
+            className={cn(
+              chronicleStyles.hubTile,
+              "relative overflow-hidden border border-[#BE8455]/45 p-6 shadow-[0_0_28px_rgba(192,132,83,0.12)] sm:p-8",
+              "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
+              "hover:border-[#DEAD82]/60 hover:shadow-[0_0_36px_rgba(192,132,83,0.20),0_0_22px_rgba(242,188,112,0.12)]",
+            )}
+          >
+            <div className="flex items-center justify-center">
+              <Image
+                src={chronicleCompact}
+                alt=""
+                unoptimized
+                className={cn("block h-12 w-auto max-w-full object-contain sm:h-14", homeLogoHover)}
+              />
+            </div>
+            <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#FFE1B9] sm:text-2xl">
+              Chronicle of Rathe
+            </h3>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#E8CBB4] sm:text-[0.95rem]">
+              Trace the first light of each illustration. Build a streak, race the clock, or set your own pace.
+            </p>
+            <Button
+              asChild
+              size="lg"
+              className={cn(chronicleStyles.entryButton, "mt-6 w-full border-[#DEAD82]/55 text-[#FFF0DA] hover:border-[#FFE1B9] sm:w-auto")}
+            >
+              <Link href="/chronicle" target="_blank" rel="noopener noreferrer">
+                Enter Chronicle
+              </Link>
+            </Button>
           </Panel>
         </div>
 

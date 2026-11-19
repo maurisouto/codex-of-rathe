@@ -1,0 +1,50 @@
+name: Verify Chronicle index refresh
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: node --test scripts/chronicle/generator.test.mjs
+      - name: Generate and verify a fresh candidate
+        shell: bash
+        run: |
+          node scripts/chronicle/refresh-index.mjs "$(date -u +%F)" "$RUNNER_TEMP/chronicle-candidate"
+          node -e '
+            const previous = require("./apps/api/src/server/chronicle/index.generated.json").entries;
+            const output = process.argv[1];
+            const candidate = require(output + "/index.generated.json").entries;
+            const source = require(output + "/source.json");
+            const days = (entries) => new Set(entries.map(({date}) => date)).size;
+            console.log("## Chronicle index");
+            console.log("");
+            console.log(`- Current: ${previous.length} illustrations on ${days(previous)} dates`);
+            console.log(`- Upstream: cards ${source.cards.version}, types ${source.types.version}`);
+            console.log(`- Candidate: ${candidate.length} illustrations on ${days(candidate)} dates`);
+          ' "$RUNNER_TEMP/chronicle-candidate" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chronicle-index-candidate
+          path: |
+            ${{ runner.temp }}/chronicle-candidate/index.generated.json
+            ${{ runner.temp }}/chronicle-candidate/report.json
+            ${{ runner.temp }}/chronicle-candidate/source.json
+            ${{ runner.temp }}/chronicle-candidate/catalog-package-lock.json
+            ${{ runner.temp }}/chronicle-candidate/catalog-package.json
+          if-no-files-found: error

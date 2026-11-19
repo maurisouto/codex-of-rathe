@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { challengeRoutes } from "@/server/challenge-routes";
+import { chronicleRoutes } from "@/server/chronicle/chronicle-routes";
 import { competitiveRoutes } from "@/server/competitive-routes";
 import { coopRoutes } from "@/server/coop-routes";
 import { fragmentsRoutes } from "@/server/fragments-routes";
@@ -60,6 +61,7 @@ app.route("/coop", coopRoutes);
 app.route("/competitive", competitiveRoutes);
 app.route("/challenges", challengeRoutes);
 app.route("/catalog", catalogRoutes);
+app.route("/chronicle", chronicleRoutes);
 app.route("/fragments", fragmentsRoutes);
 app.route("/single", singlePlayerRoutes);
 app.route("/guest", guestRoutes);
