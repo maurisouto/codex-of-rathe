@@ -1,7 +1,7 @@
 export const MODES = {
-  streak: { title: "Streak", description: "Start with three cards. Each correct order adds a card. Your first miss ends the run." },
-  timed: { title: "Timed", description: "Order three cards in 30 seconds. You have one attempt." },
-  untimed: { title: "Untimed", description: "Order three cards at your own pace. See your time when you get it right." },
+  streak: { title: "Streak", description: "Three cards begin the chronicle. Each correct order adds one more. One misstep ends the run." },
+  timed: { title: "Timed", description: "Three cards. Thirty seconds. One chance to set their art in release order." },
+  untimed: { title: "Untimed", description: "Take the time you need to set the timeline right. A correct order records your time." },
 } as const;
 
 export type Mode = keyof typeof MODES;

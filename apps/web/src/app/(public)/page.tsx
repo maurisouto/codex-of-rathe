@@ -140,14 +140,16 @@ export default function HubHomePage() {
               Chronicle of Rathe
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#E8CBB4] sm:text-[0.95rem]">
-              Put card illustrations in release order. Build a streak, race the clock, or take your time.
+              Trace the first light of each illustration. Build a streak, race the clock, or set your own pace.
             </p>
             <Button
               asChild
               size="lg"
               className="mt-6 w-full border-[#DEAD82]/55 bg-[#70452D] text-[#FFF0DA] hover:border-[#FFE1B9] hover:bg-[#815139] sm:w-auto"
             >
-              <Link href="/chronicle">Enter Chronicle</Link>
+              <Link href="/chronicle" target="_blank" rel="noopener noreferrer">
+                Enter Chronicle
+              </Link>
             </Button>
           </Panel>
         </div>

@@ -298,7 +298,7 @@ export function ChroniclePlay() {
   return (
     <div className={styles.chronicle}>
       <nav className={styles.nav} aria-label="Chronicle">
-        <Link href="/" onClick={() => reset(false)}>← Codex hub</Link>
+        <Link href="/" onClick={() => reset(false)}><span aria-hidden="true">←&nbsp;</span>Back to Codex hub</Link>
         {!snapshot && <div><a href="#modes">Modes</a><a href="#how">How to play</a><a href="#faq">FAQ</a></div>}
       </nav>
 
@@ -308,7 +308,7 @@ export function ChroniclePlay() {
             <Image src={hero} alt="" fill sizes="(max-width: 760px) 100vw, 1120px" />
             <div>
               <h1>Chronicle of Rathe</h1>
-              <p>Put Flesh and Blood card illustrations in release order.</p>
+              <p>Every illustration leaves a mark on Rathe. Order their first commercial releases from earliest to latest.</p>
             </div>
           </header>
           <section id="modes" className={styles.panel}>
