@@ -5,6 +5,7 @@ import { GameLogo } from "@/components/brand/game-logo";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
+import chronicleStyles from "@/features/chronicle/chronicle.module.css";
 import { cn } from "@/lib/utils/cn";
 
 const homeLogoHover = "motion-safe:transition-[filter] motion-safe:duration-300 hover:drop-shadow-[0_0_20px_rgba(201,162,39,0.5)]";
@@ -142,7 +143,8 @@ export default function HubHomePage() {
           <Panel
             variant="subtle"
             className={cn(
-              "relative overflow-hidden border border-[#BE8455]/45 bg-[radial-gradient(ellipse_at_top_right,#6b422c_0%,transparent_64%),linear-gradient(155deg,#31221c,#1b1717_76%)] p-6 shadow-[0_0_28px_rgba(192,132,83,0.12)] sm:p-8",
+              chronicleStyles.hubTile,
+              "relative overflow-hidden border border-[#BE8455]/45 p-6 shadow-[0_0_28px_rgba(192,132,83,0.12)] sm:p-8",
               "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
               "hover:border-[#DEAD82]/60 hover:shadow-[0_0_36px_rgba(192,132,83,0.20),0_0_22px_rgba(242,188,112,0.12)]",
             )}
@@ -164,7 +166,7 @@ export default function HubHomePage() {
             <Button
               asChild
               size="lg"
-              className="mt-6 w-full border-[#DEAD82]/55 bg-[#70452D] text-[#FFF0DA] hover:border-[#FFE1B9] hover:bg-[#815139] sm:w-auto"
+              className={cn(chronicleStyles.entryButton, "mt-6 w-full border-[#DEAD82]/55 text-[#FFF0DA] hover:border-[#FFE1B9] sm:w-auto")}
             >
               <Link href="/chronicle" target="_blank" rel="noopener noreferrer">
                 Enter Chronicle

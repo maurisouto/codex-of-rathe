@@ -1,7 +1,34 @@
+.hubTile {
+  background:
+    repeating-linear-gradient(126deg, #ffd8a706 0 1px, transparent 1px 6px),
+    linear-gradient(158deg, #2115175e, #281a18c9 49%, #181315f7 94%),
+    radial-gradient(ellipse at 88% 0%, #a0673a65, transparent 70%),
+    url("./assets/hero.webp") 58% 36% / cover no-repeat,
+    #211818;
+}
+
+.entryButton {
+  background:
+    linear-gradient(151deg, #704328d7, #43251df5),
+    url("./assets/hero.webp") 61% 34% / 185% auto no-repeat,
+    #603a27;
+  box-shadow: inset 0 1px 0 #ffdeb45c, 0 3px 10px #1b120d70;
+}
+
+.entryButton:hover {
+  background:
+    linear-gradient(151deg, #815139ea, #563124f5),
+    url("./assets/hero.webp") 61% 34% / 185% auto no-repeat,
+    #74472e;
+}
+
 body:has(.siteHeader) {
-  background: radial-gradient(ellipse at 15% 8%, #873d263b, transparent 30rem),
-    radial-gradient(ellipse at 92% 38%, #28585046, transparent 34rem),
-    linear-gradient(148deg, #131113, #251b17 54%, #101719);
+  background:
+    radial-gradient(ellipse at 12% 14rem, #94533752, transparent 33rem),
+    radial-gradient(ellipse at 92% 32rem, #28585059, transparent 37rem),
+    linear-gradient(180deg, #161314ae, #1c1617c2 30rem, #171415 63rem),
+    url("./assets/hero.webp") center top / max(100%, 75rem) auto no-repeat,
+    #171415;
 }
 
 .siteHeader {
@@ -87,7 +114,7 @@ body:has([data-chronicle-setup]) .siteHeader .setupLink { display: inline-flex; 
   background: repeating-linear-gradient(124deg, #ffdebc06 0 1px, transparent 1px 5px),
     radial-gradient(ellipse at 8% 1%, #82442b56, transparent 31rem),
     radial-gradient(ellipse at 100% 65%, #29564d46, transparent 37rem),
-    linear-gradient(155deg, #2c211df2, #181516f5);
+    linear-gradient(155deg, #2c211dbf, #181516e8 70%);
   box-shadow: var(--inset-light);
   font-family: var(--font-sans);
   color: var(--ink);
