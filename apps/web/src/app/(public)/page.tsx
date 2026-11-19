@@ -7,6 +7,8 @@ import { Panel } from "@/components/ui/panel";
 import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
 import { cn } from "@/lib/utils/cn";
 
+const homeLogoHover = "motion-safe:transition-[filter] motion-safe:duration-300 hover:drop-shadow-[0_0_20px_rgba(201,162,39,0.5)]";
+
 export default function HubHomePage() {
   return (
     <div className="relative mx-auto flex w-full max-w-4xl flex-col gap-14 overflow-hidden px-4 pb-24 pt-4 sm:gap-16 sm:px-6 sm:pt-10">
@@ -112,7 +114,10 @@ export default function HubHomePage() {
                 placement="header"
                 href="/puzzle"
                 openInNewTab
-                className="max-w-max [&_img]:object-center [&_img]:h-14 [&_img]:max-h-14 sm:[&_img]:h-16 sm:[&_img]:max-h-16"
+                className={cn(
+                  "max-w-max [&_img]:object-center [&_img]:h-14 [&_img]:max-h-14 hover:[&_img]:brightness-100 sm:[&_img]:h-16 sm:[&_img]:max-h-16",
+                  homeLogoHover,
+                )}
               />
             </div>
             <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#DDFEEA] sm:text-2xl">
@@ -147,7 +152,7 @@ export default function HubHomePage() {
                 src={chronicleCompact}
                 alt=""
                 unoptimized
-                className="block h-12 w-auto max-w-full object-contain sm:h-14"
+                className={cn("block h-12 w-auto max-w-full object-contain sm:h-14", homeLogoHover)}
               />
             </div>
             <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#FFE1B9] sm:text-2xl">
