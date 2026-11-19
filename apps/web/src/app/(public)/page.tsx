@@ -1,8 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { FragmentsLogo } from "@/components/brand/fragments-logo";
 import { GameLogo } from "@/components/brand/game-logo";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
+import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
 import { cn } from "@/lib/utils/cn";
 
 export default function HubHomePage() {
@@ -136,7 +138,15 @@ export default function HubHomePage() {
             variant="subtle"
             className="relative overflow-hidden border border-[#BE8455]/45 bg-[radial-gradient(ellipse_at_top_right,#6b422c_0%,transparent_64%),linear-gradient(155deg,#31221c,#1b1717_76%)] p-6 shadow-[0_0_28px_rgba(192,132,83,0.12)] sm:p-8"
           >
-            <h3 className="font-codex text-xl font-semibold tracking-[0.08em] text-[#FFE1B9] sm:text-2xl">
+            <div className="flex items-center justify-center">
+              <Image
+                src={chronicleCompact}
+                alt=""
+                unoptimized
+                className="block h-12 w-auto max-w-full object-contain sm:h-14"
+              />
+            </div>
+            <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#FFE1B9] sm:text-2xl">
               Chronicle of Rathe
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#E8CBB4] sm:text-[0.95rem]">

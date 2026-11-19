@@ -69,7 +69,8 @@
   background: #201719;
   margin-bottom: clamp(1.25rem, 3vw, 2rem);
 }
-.hero img { z-index: -2; object-fit: cover; object-position: center 46%; }
+.heroArt { z-index: -2; object-fit: cover; object-position: center 46%; }
+.heroLogo { display: block; width: min(100%, 34rem); height: auto; object-fit: contain; }
 .hero::before {
   content: "";
   position: absolute;
@@ -262,6 +263,7 @@
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mobileAxis { display: block; flex-basis: 100%; color: var(--subtle); }
   .hero::before { background: linear-gradient(90deg, #211719f0, #21171987); }
+  .heroLogo { width: min(100%, 88vw); }
 }
 
 @media (max-width: 430px) {

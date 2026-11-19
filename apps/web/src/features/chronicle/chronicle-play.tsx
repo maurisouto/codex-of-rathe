@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import hero from "./assets/hero.webp";
+import wayfindersArc from "./assets/wayfinders-arc-full.svg";
 import {
   abandonRun,
   ChronicleRequestError,
@@ -305,9 +306,10 @@ export function ChroniclePlay() {
       {!snapshot && (
         <>
           <header className={styles.hero}>
-            <Image src={hero} alt="" fill sizes="(max-width: 760px) 100vw, 1120px" />
+            <Image src={hero} alt="" fill sizes="(max-width: 760px) 100vw, 1120px" className={styles.heroArt} />
             <div>
-              <h1>Chronicle of Rathe</h1>
+              <h1 className={styles.sr}>Chronicle of Rathe</h1>
+              <Image src={wayfindersArc} alt="" unoptimized className={styles.heroLogo} />
               <p>Every illustration leaves a mark on Rathe. Order their first commercial releases from earliest to latest.</p>
             </div>
           </header>
