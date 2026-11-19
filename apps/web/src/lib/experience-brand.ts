@@ -43,7 +43,7 @@ export function getBrandFromPathname(pathname: string | null | undefined): Brand
     return normalized.startsWith("/puzzle") ? "fragments" : "guess";
   }
 
-  return "guess";
+  return normalized === "/disclaimer" ? "codex" : "guess";
 }
 
 export function getProfilePathForBrand(brand: Brand): string {
