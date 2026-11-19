@@ -14,29 +14,29 @@ const guideCards = [
 const scenes = [
   {
     order: [1, 0, 2],
-    title: "Start with three cards",
-    description: "Look at the artwork and card names. Release details stay hidden while you play.",
+    title: "Open the chronicle",
+    description: "Study the three illustrations and their names. Their release dates lie beyond the veil until the round ends.",
   },
   {
     order: [0, 1, 2],
-    title: "Put them in release order",
-    description: <>Use <strong>Earlier</strong> and <strong>Later</strong> to move cards, then select <strong>Lock order</strong>.</>,
+    title: "Trace the timeline",
+    description: <>Arrange the art from earliest to latest with <strong>Earlier</strong> and <strong>Later</strong>. Select <strong>Lock order</strong> to seal your answer.</>,
     note: "Move Snatch earlier",
   },
   {
     order: [0, 1, 2],
-    title: "Reveal the timeline",
-    description: "A correct order adds a card to the next round. Your first miss ends the streak.",
+    title: "Unveil the record",
+    description: "A correct order opens the next chapter with one more card. One wrong order ends the streak.",
     note: "Level cleared · Next round: four cards",
   },
 ];
 
 const faq = [
-  ["Which release counts?", "Each illustration is dated by its first documented official commercial set release."],
-  ["Does alternate artwork count separately?", "Distinct alternate art has its own date. Reprints, foil, and border changes of the same illustration share its earliest commercial date."],
-  ["Do promos count?", "Promo distributions do not establish a date. If that same artwork later appears in a commercial set, its first commercial release counts."],
-  ["What stays hidden while I play?", "You see the illustration and card name. The full card, collector details, set, and release date appear in the result."],
-  ["What is recorded?", "This browser keeps your most recent finished run. Streak records your highest level cleared, Timed records the outcome, and Untimed records your elapsed time only on a correct order."],
+  ["Where does an illustration’s story begin?", "The chronicle dates each illustration to its first documented release in an official commercial set."],
+  ["Can one card have two histories?", "Distinct alternate art begins a new entry with its own date. Reprints, foil editions, and new borders share the original illustration’s earliest commercial date."],
+  ["Do promos enter the chronicle?", "Promotional releases leave no date in the record. If the same art later appears in a commercial set, that first commercial release counts."],
+  ["What lies beyond the veil?", "Only the illustration and card name are visible during play. The result reveals the full card, collector details, set, and release date."],
+  ["What does the chronicle remember?", "Your browser keeps your latest completed run. Streak keeps the highest level you cleared. Timed keeps the outcome. Untimed records elapsed time only for a correct order."],
 ];
 
 export function ChronicleGuide() {
@@ -44,7 +44,7 @@ export function ChronicleGuide() {
     <>
       <section id="how" aria-labelledby="chronicle-how">
         <h2 id="chronicle-how">How to play</h2>
-        <p>Start with Streak and put three illustrations in release order.</p>
+        <p>Begin with Streak and arrange three illustrations from earliest to latest.</p>
         <ol className={styles.guideGrid}>
           {scenes.map(({ order, title, description, note }, scene) => (
             <li key={title} className={styles.guidePanel}>
@@ -70,8 +70,8 @@ export function ChronicleGuide() {
           ))}
         </ol>
         <dl className={styles.guideModes}>
-          <div><dt>Timed</dt><dd>Order three cards before the 30-second countdown ends.</dd></div>
-          <div><dt>Untimed</dt><dd>Play one round at your own pace. Your time is recorded on a correct order.</dd></div>
+          <div><dt>Timed</dt><dd>Set three cards in order before the last grain of the 30-second hourglass falls.</dd></div>
+          <div><dt>Untimed</dt><dd>Follow the trail at your own pace in a single round. Only a correct order earns a recorded time.</dd></div>
         </dl>
       </section>
       <section id="faq" aria-labelledby="chronicle-faq">
