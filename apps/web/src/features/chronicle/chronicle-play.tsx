@@ -313,8 +313,9 @@ export function ChroniclePlay() {
                 <legend>Choose a mode</legend>
                 <div className={styles.modes}>
                   {(Object.keys(MODES) as Mode[]).map((value) => (
-                    <label className={styles.mode} key={value}>
-                      <strong>
+                    <label className={styles.mode} data-mode={value} key={value}>
+                      <span className={styles.modeSeal} aria-hidden="true" />
+                      <strong className={styles.modeName}>
                         <input
                           ref={mode === value ? modeInput : undefined}
                           type="radio"
@@ -322,9 +323,12 @@ export function ChroniclePlay() {
                           value={value}
                           checked={mode === value}
                           onChange={() => setMode(value)}
-                        />{" "}{MODES[value].title}
+                          aria-label={MODES[value].title}
+                          aria-describedby={`chronicle-mode-${value}`}
+                        />
+                        {MODES[value].title}
                       </strong>
-                      <span>{MODES[value].description}</span>
+                      <span id={`chronicle-mode-${value}`} className={styles.modeDescription}>{MODES[value].description}</span>
                     </label>
                   ))}
                 </div>
