@@ -1,0 +1,51 @@
+.heading {
+  margin-bottom: clamp(1rem, 4vw, 2rem);
+  padding: clamp(0.75rem, 4vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: 0.9rem;
+  background:
+    linear-gradient(90deg, #211719f5, #211719ce 60%, #21171972),
+    url("./assets/hero.webp") 60% 46% / cover no-repeat,
+    #201719;
+}
+
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-bottom: 1.2rem;
+}
+
+.feedback,
+.personal {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.personal {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: #201719;
+}
+
+.table {
+  width: 100%;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th,
+.table td {
+  padding: 0.6rem clamp(0.25rem, 2vw, 0.9rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.table th[scope="row"] { overflow-wrap: anywhere; font-weight: 500; }
+.table a { display: inline-block; padding-block: 0.2rem; }
+.table th:last-child,
+.table td:last-child { text-align: right; white-space: nowrap; }
+.table tr[data-personal] { background: #9f6d4529; }

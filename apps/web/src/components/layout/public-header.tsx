@@ -12,6 +12,9 @@ export function PublicHeader() {
   const pathname = usePathname();
   const brand = getBrandFromPathname(pathname);
   if (pathname === "/chronicle" || pathname === "/chronicle/") return <ChronicleHeader />;
+  if (pathname === "/chronicle/leaderboard" || pathname === "/chronicle/leaderboard/") {
+    return <ChronicleHeader leaderboard />;
+  }
   if (brand === "codex") return <CodexHeader />;
   if (brand === "fragments") return <FragmentsHeader />;
   return <SiteHeader />;

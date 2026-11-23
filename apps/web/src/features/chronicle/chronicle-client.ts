@@ -1,3 +1,5 @@
+import { getSupabaseAccessTokenForApi } from "@/lib/auth/game-api-headers";
+
 export const MODES = {
   streak: { title: "Streak", description: "Six chapters await, each with a fresh board. Start with three cards and work your way up to eight. Your first misstep closes the book." },
   timed: { title: "Timed", description: "Race the hourglass. You have thirty seconds and one chance to put three cards in the order their art first appeared." },
@@ -54,16 +56,22 @@ export class ChronicleRequestError extends Error {
   }
 }
 
-async function post<T>(path: string, body: object): Promise<T> {
+async function post<T>(path: string, body: object) {
+  const { accessToken, hasSession } = await getSupabaseAccessTokenForApi();
+  if (hasSession && !accessToken) throw new ChronicleRequestError(401);
+  const requestedAt = performance.now();
   const response = await fetch(`/api/chronicle/runs${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(10_000),
     cache: "no-store",
   });
   if (!response.ok) throw new ChronicleRequestError(response.status);
-  return response.json() as Promise<T>;
+  return { snapshot: await response.json() as T, requestedAt };
 }
 
 export function startRun(mode: Mode) {
@@ -98,7 +106,7 @@ export function saveCompletedResult({ mode, runId, result }: Snapshot, storage: 
       mode,
       outcome: result.outcome,
       highestLevel: result.highestLevel,
-      elapsedMs: mode === "untimed" && result.outcome === "correct" ? result.elapsedMs : null,
+      elapsedMs: result.outcome === "correct" ? result.elapsedMs : null,
     };
     storage.setItem(localKey, JSON.stringify(record));
   } catch {
