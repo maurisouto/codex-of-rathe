@@ -11,6 +11,7 @@ import {
   type TomeQuestion,
   type TomeSnapshot,
 } from "./tome-client";
+import exampleCard from "./assets/guide-wtr160.webp";
 import styles from "./tome.module.css";
 
 function TomeIntro({ start, busy }: { start: () => void; busy: boolean }) {
@@ -27,19 +28,37 @@ function TomeIntro({ start, busy }: { start: () => void; busy: boolean }) {
           loading="eager"
         />
         <div className={styles.rule} aria-hidden="true" />
-        <p className={styles.lead}>Look closely at the artwork and put your Flesh and Blood knowledge to the test.</p>
-        <p>Play eight questions at your own pace. See the answer after each one.</p>
+        <p className={styles.lead}>Look closely at the artwork, then answer a question about it or the card it comes from.</p>
+        <p>Play eight questions at your own pace.</p>
         <button className={styles.primary} type="button" onClick={start} disabled={busy}>
-          {busy ? "Opening the tome…" : "Start trivia"}
+          {busy ? "Loading trivia…" : "Start trivia"}
         </button>
       </section>
       <section className={styles.guide} aria-labelledby="tome-how">
         <h2 id="tome-how">How to play</h2>
         <ol>
-          <li><strong>Study the artwork.</strong> The question may ask about the illustration, the card, or when it first appeared.</li>
-          <li><strong>Choose one of four answers.</strong> You can change your choice before you select Check answer.</li>
-          <li><strong>See what you got right.</strong> Each correct answer earns one point. Review all eight answers at the end.</li>
+          <li><strong>Study the artwork.</strong> You might be asked who illustrated it, what class the card belongs to, or where the artwork first appeared.</li>
+          <li><strong>Choose one of four answers.</strong> You can change your choice before you select <strong>Check answer</strong>.</li>
+          <li><strong>See the answer.</strong> Each correct answer earns one point. Review all eight answers at the end.</li>
         </ol>
+        <div className={styles.example}>
+          <Image src={exampleCard} alt="A figure holding a glowing tome" sizes="(max-width: 640px) 80vw, 240px" />
+          <div>
+            <h3>Example</h3>
+            <p>Who illustrated this artwork?</p>
+            <ul aria-label="Example choices">
+              <li>Sebastian Giacobino</li>
+              <li>Daniel Jiménez</li>
+              <li>Livia Prima</li>
+              <li>Alexander Mokhov</li>
+            </ul>
+            <details>
+              <summary>Show answer</summary>
+              <p><strong>Correct answer: Daniel Jiménez</strong></p>
+              <p>Daniel Jiménez illustrated this artwork for Tome of Fyendal (WTR160) from <em>Welcome to Rathe</em>.</p>
+            </details>
+          </div>
+        </div>
       </section>
     </>
   );
@@ -109,7 +128,7 @@ function TomeResults({ snapshot, busy, start }: { snapshot: TomeSnapshot; busy: 
       <p className={styles.score}>{snapshot.score} of {snapshot.total} correct</p>
       <div className={styles.controls}>
         <button type="button" className={styles.primary} disabled={busy} onClick={start}>
-          {busy ? "Opening the tome…" : "Play again"}
+          {busy ? "Loading trivia…" : "Play again"}
         </button>
         <button type="button" className={styles.secondary} onClick={() => setReview((value) => !value)}
           aria-controls="tome-review" aria-expanded={review}>
@@ -191,7 +210,7 @@ export function TomePlay() {
       {error && (
         <div className={styles.requestError} role="alert">
           <p>{error.message}</p>
-          {error.expired && <button className={styles.secondary} type="button" onClick={start} disabled={busy}>Start a new trial</button>}
+          {error.expired && <button className={styles.secondary} type="button" onClick={start} disabled={busy}>Start new trivia</button>}
         </div>
       )}
       {!snapshot && <TomeIntro start={start} busy={busy} />}

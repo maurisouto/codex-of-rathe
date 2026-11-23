@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
 import chronicleStyles from "@/features/chronicle/chronicle.module.css";
+import tomeStyles from "@/features/tome/tome.module.css";
 import { cn } from "@/lib/utils/cn";
 
 const homeLogoHover = "motion-safe:transition-[filter] motion-safe:duration-300 hover:drop-shadow-[0_0_20px_rgba(201,162,39,0.5)]";
@@ -176,7 +177,12 @@ export default function HubHomePage() {
 
           <Panel
             variant="subtle"
-            className="relative overflow-hidden border border-[#7089AA]/50 bg-[radial-gradient(ellipse_at_top,#244C77,transparent_70%),linear-gradient(155deg,#10223A,#081222)] p-6 shadow-[0_0_28px_rgba(153,201,255,0.1)] motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5 hover:border-[#99C9FF]/75 hover:shadow-[0_0_32px_rgba(153,201,255,0.18)] sm:p-8"
+            className={cn(
+              tomeStyles.hubTile,
+              "relative overflow-hidden border border-[#7089AA]/50 p-6 shadow-[0_0_28px_rgba(153,201,255,0.1)] sm:p-8",
+              "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
+              "hover:border-[#99C9FF]/75 hover:shadow-[0_0_32px_rgba(153,201,255,0.18)]",
+            )}
           >
             <div className="flex justify-center">
               <Image
@@ -191,9 +197,9 @@ export default function HubHomePage() {
               Tome of Fyendal
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#BDCCE2] sm:text-[0.95rem]">
-              Use card art to answer Flesh and Blood trivia about artists, classes, and more.
+              Study the artwork. Put your Flesh and Blood knowledge to the test.
             </p>
-            <Button asChild size="lg" className="mt-6 w-full border-[#7089AA] bg-[#99C9FF] text-[#0A1F37] hover:bg-[#E0F0FF] sm:w-auto">
+            <Button asChild size="lg" variant="outline" className={cn(tomeStyles.entryButton, "mt-6 w-full motion-reduce:transition-none sm:w-auto")}>
               <Link href="/tome" target="_blank" rel="noopener noreferrer">
                 Enter Tome of Fyendal
               </Link>

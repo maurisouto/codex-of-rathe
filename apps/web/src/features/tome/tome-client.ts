@@ -49,7 +49,7 @@ async function request(path: string, body: TomeAction | Record<string, never>): 
   });
   if (!response.ok) {
     if (response.status === 404 && path !== runsPath) {
-      throw new TomeRequestError("This trial has expired. Start a new trial to play again.", true);
+      throw new TomeRequestError("This trivia session has expired.", true);
     }
     const payload = await response.json().catch(() => null);
     throw new TomeRequestError(
