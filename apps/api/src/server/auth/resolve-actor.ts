@@ -103,7 +103,7 @@ export async function requireUserActor(
  */
 export async function tryResolveUserIdFromRequest(
   headers: Headers,
-  options?: ResolveActorOptions,
+  options?: ResolveActorOptions & { provisionLocalUser?: boolean },
 ): Promise<string | null> {
   const verify = options?.verifyAccessToken ?? defaultVerifyAccessToken;
   const bearer = extractBearerToken(headers);
@@ -114,9 +114,11 @@ export async function tryResolveUserIdFromRequest(
   if (!verified) {
     return null;
   }
-  await ensureLocalUserForAuth(verified.sub, {
-    email: verified.email,
-    avatarUrl: verified.avatarUrl,
-  });
+  if (options?.provisionLocalUser !== false) {
+    await ensureLocalUserForAuth(verified.sub, {
+      email: verified.email,
+      avatarUrl: verified.avatarUrl,
+    });
+  }
   return verified.sub;
 }

@@ -53,9 +53,11 @@ type Round = {
 type Run = {
   id: string;
   mode: ChronicleMode;
+  userId: string | null;
   rounds: Round[];
   level: number;
   highestLevel: number;
+  pendingScore: number | null;
   expiresAt: number;
 };
 
@@ -137,7 +139,7 @@ function resolveRound(run: Run, round: Round, now: number, expired: boolean): vo
     outcome: expired ? "timeout" : correct ? "correct" : "incorrect",
     complete: !correct || run.level === run.rounds.length,
     highestLevel: run.highestLevel,
-    elapsedMs: correct && run.mode === "untimed" ? Math.max(0, now - round.startedAt!) : null,
+    elapsedMs: correct && run.mode !== "streak" ? Math.max(0, now - round.startedAt!) : null,
     // Preserve the submitted relative order when release days tie.
     cards: submitted
       .map(({ id, entry }, index) => ({
@@ -150,6 +152,9 @@ function resolveRound(run: Run, round: Round, now: number, expired: boolean): vo
       }))
       .sort((a, b) => a.date.localeCompare(b.date)),
   };
+  if (correct && run.userId) {
+    run.pendingScore = run.mode === "streak" ? run.highestLevel : round.result.elapsedMs;
+  }
 }
 
 function currentRound(run: Run): Round {
@@ -158,13 +163,14 @@ function currentRound(run: Run): Round {
 
 function snapshot(run: Run, now: number) {
   const round = currentRound(run);
+  const showBoard = !run.userId || run.mode === "streak" || round.startedAt !== null;
   return {
     runId: run.id,
     mode: run.mode,
     level: run.level,
     roundId: round.id,
-    cards: round.cards.map(({ id, entry }) => ({ id, name: entry.name, cropDataUrl: entry.cropDataUrl })),
-    order: [...round.order],
+    cards: showBoard ? round.cards.map(({ id, entry }) => ({ id, name: entry.name, cropDataUrl: entry.cropDataUrl })) : [],
+    order: showBoard ? [...round.order] : [],
     ready: round.startedAt !== null,
     deadlineMs: deadlineFor(run.mode, round),
     serverNowMs: now,
@@ -187,7 +193,7 @@ export function createChronicleGame(
 ) {
   const runs = new Map<string, Run>();
 
-  function start(mode: ChronicleMode) {
+  function start(mode: ChronicleMode, userId: string | null = null) {
     const time = now();
     for (const [id, run] of runs) {
       if (run.expiresAt <= time) runs.delete(id);
@@ -198,21 +204,26 @@ export function createChronicleGame(
     const run: Run = {
       id: randomUUID(),
       mode,
+      userId,
       rounds: generateRounds(getEntries(), mode, pick),
       level: 1,
       highestLevel: 0,
+      pendingScore: null,
       expiresAt: time + ttlMs,
     };
     runs.set(run.id, run);
     return snapshot(run, time);
   }
 
-  function act(runId: string, request: ChronicleAction) {
+  function act(runId: string, request: ChronicleAction, userId: string | null = null) {
     const time = now();
     const run = runs.get(runId);
     if (!run || run.expiresAt <= time) {
       runs.delete(runId);
       if (request.action === "abandon") return { ok: true } as const;
+      throw new ChronicleError(404, "This run is no longer available. Start a new round.");
+    }
+    if (run.userId !== userId) {
       throw new ChronicleError(404, "This run is no longer available. Start a new round.");
     }
     const round = currentRound(run);
@@ -249,5 +260,18 @@ export function createChronicleGame(
     return snapshot(run, time);
   }
 
-  return { start, act };
+  function persistScore(
+    runId: string,
+    userId: string,
+    record: (userId: string, mode: ChronicleMode, score: number) => Promise<void>,
+  ): Promise<void> | null {
+    const run = runs.get(runId);
+    if (!run || run.userId !== userId || run.pendingScore === null || run.expiresAt <= now()) return null;
+    const score = run.pendingScore;
+    return record(userId, run.mode, score).then(() => {
+      if (run.pendingScore === score) run.pendingScore = null;
+    });
+  }
+
+  return { start, act, persistScore };
 }

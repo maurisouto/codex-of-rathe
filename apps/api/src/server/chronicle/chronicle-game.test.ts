@@ -162,7 +162,7 @@ describe("Chronicle timing and results", () => {
     const state = act(game.start("timed"), "ready");
     advance(29_999);
     const win = act(state, "submit", answer(state));
-    expect(win.result).toMatchObject({ outcome: "correct", complete: true, elapsedMs: null });
+    expect(win.result).toMatchObject({ outcome: "correct", complete: true, elapsedMs: 29_999 });
     advance(10_000);
     expect(act(state, "expire").result).toEqual(win.result);
     expect(act(state, "submit", state.order).result).toEqual(win.result);

@@ -143,8 +143,7 @@ export function ChroniclePlay() {
     pending.current = true;
     setBusy(true);
     try {
-      const requestedAt = performance.now();
-      const next = await startRun(nextMode);
+      const { snapshot: next, requestedAt } = await startRun(nextMode);
       if (generation.current === token) publish(next, requestedAt);
       else abandonRun(next);
     } catch {
@@ -172,8 +171,7 @@ export function ChroniclePlay() {
     setRetry(null);
     setBusy(true);
     try {
-      const requestedAt = performance.now();
-      const next = await roundAction(previous, action, order);
+      const { snapshot: next, requestedAt } = await roundAction(previous, action, order);
       if (generation.current !== token) {
         // Navigation may have abandoned the previous round while this transition opened a new one.
         if (action === "next" && next.roundId !== previous.roundId) abandonRun(next);
@@ -199,6 +197,11 @@ export function ChroniclePlay() {
       }
     }
   }, [publish, reset, start]);
+
+  useEffect(() => {
+    if (!snapshot || snapshot.ready || snapshot.cards.length || busy || retry) return;
+    void perform("ready");
+  }, [snapshot, busy, retry, perform]);
 
   const onArtLoaded = (roundId: string, id: string) => {
     const round = current.current;
@@ -438,7 +441,7 @@ export function ChroniclePlay() {
               ? highestLevelLabel(snapshot.result.highestLevel)
               : "The next level opens a fresh board with one more position."}</p>
           )}
-          {snapshot.result.elapsedMs !== null && snapshot.mode === "untimed" && (
+          {snapshot.result.elapsedMs !== null && (
             <p>Elapsed time: <span className={styles.number}>{elapsedLabel(snapshot.result.elapsedMs)}</span></p>
           )}
           <p>{snapshot.result.outcome === "timeout"

@@ -96,6 +96,7 @@ model User {
   fragmentsCompletions      FragmentsCompletion[]
   fragmentsStat             UserFragmentsStat?
   fragmentsCardStats        UserFragmentsCardStat[]
+  chronicleBestScores       ChronicleBestScore[]
 
   @@map("users")
 }
@@ -413,4 +414,17 @@ model UserFragmentsCardStat {
   @@unique([userId, cardId])
   @@index([userId])
   @@map("user_fragments_card_stats")
+}
+
+/// Best server-verified level (Streak) or elapsed milliseconds (Timed/Untimed).
+model ChronicleBestScore {
+  userId String @map("user_id") @db.Uuid
+  mode   String
+  score  Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, mode])
+  @@index([mode, score])
+  @@map("chronicle_best_scores")
 }
