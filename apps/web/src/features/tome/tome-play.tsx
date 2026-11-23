@@ -3,6 +3,9 @@
 import Image from "next/image";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
+import { Button } from "@/components/ui/button";
+import { Panel } from "@/components/ui/panel";
+
 import {
   startTomeRun,
   TomeRequestError,
@@ -22,43 +25,55 @@ function TomeIntro({ start, busy }: { start: () => void; busy: boolean }) {
           src="/assets/tome-of-fyendal-logo.png"
           width={2106}
           height={593}
-          sizes="(max-width: 640px) 100vw, 540px"
+          sizes="(max-width: 640px) 100vw, 512px"
           className={styles.logo}
           alt=""
           loading="eager"
         />
-        <div className={styles.rule} aria-hidden="true" />
-        <p className={styles.lead}>Look closely at the artwork, then answer a question about it or the card it comes from.</p>
-        <p>Play eight questions at your own pace.</p>
-        <button className={styles.primary} type="button" onClick={start} disabled={busy}>
-          {busy ? "Loading trivia…" : "Start trivia"}
-        </button>
+        <p className={styles.lead}>Every illustration has a record. How much of it can you recall?</p>
+        <p className={styles.heroDescription}>
+          Eight questions on Flesh and Blood card art, from the artist’s credit to the artwork’s first release.
+        </p>
+        <Button variant="outline" size="lg" className={styles.primary} type="button" onClick={start} disabled={busy}>
+          {busy ? "Loading trivia…" : "Begin trivia"}
+        </Button>
       </section>
       <section className={styles.guide} aria-labelledby="tome-how">
         <h2 id="tome-how">How to play</h2>
-        <ol>
-          <li><strong>Study the artwork.</strong> You might be asked who illustrated it, what class the card belongs to, or where the artwork first appeared.</li>
-          <li><strong>Choose one of four answers.</strong> You can change your choice before you select <strong>Check answer</strong>.</li>
-          <li><strong>See the answer.</strong> Each correct answer earns one point. Review all eight answers at the end.</li>
+        <ol role="list">
+          <li>
+            <h3>Examine the illustration</h3>
+            <p>Each question asks about the artwork, the card, or the artwork’s first commercial release.</p>
+          </li>
+          <li>
+            <h3>Choose one answer</h3>
+            <p>Select one of four options, then select <strong>Check answer</strong> to confirm.</p>
+          </li>
+          <li>
+            <h3>Read the reveal</h3>
+            <p>Each correct answer earns one point. You can review all eight answers at the end.</p>
+          </li>
         </ol>
-        <div className={styles.example}>
-          <Image src={exampleCard} alt="A figure holding a glowing tome" sizes="(max-width: 640px) 80vw, 240px" />
+        <Panel variant="subtle" className={styles.example}>
+          <Image src={exampleCard} alt="A figure holds a glowing tome between dark shelves." sizes="(max-width: 640px) 80vw, 240px" />
           <div>
-            <h3>Example</h3>
-            <p>Who illustrated this artwork?</p>
-            <ul aria-label="Example choices">
+            <h3>Example question</h3>
+            <p className={styles.examplePrompt}>Who illustrated this artwork?</p>
+            <ul role="list" aria-label="Example choices">
               <li>Sebastian Giacobino</li>
-              <li>Daniel Jiménez</li>
+              <li className={styles.exampleCorrect}>Daniel Jiménez</li>
               <li>Livia Prima</li>
               <li>Alexander Mokhov</li>
             </ul>
             <details>
-              <summary>Show answer</summary>
-              <p><strong>Correct answer: Daniel Jiménez</strong></p>
-              <p>Daniel Jiménez illustrated this artwork for Tome of Fyendal (WTR160) from <em>Welcome to Rathe</em>.</p>
+              <summary><span>Show answer</span><span>Hide answer</span></summary>
+              <div className={styles.exampleReveal}>
+                <p><strong>Correct answer: Daniel Jiménez</strong></p>
+                <p>Daniel Jiménez illustrated this artwork for Tome of Fyendal (WTR160) in <em>Welcome to Rathe</em>.</p>
+              </div>
             </details>
           </div>
-        </div>
+        </Panel>
       </section>
     </>
   );
@@ -83,13 +98,13 @@ function TomeArtwork({
     <div className={styles.artwork}>
       {failed ? (
         <div className={styles.artworkError}>
-          <p role="status">The artwork couldn’t load.</p>
-          <button className={styles.secondary} type="button" onClick={() => {
+          <p role="status">The illustration could not be loaded.</p>
+          <Button variant="outline" className={styles.secondary} type="button" onClick={() => {
             setFailed(false);
             setAttempt((value) => value + 1);
-          }}>Retry image</button>
+          }}>Retry image</Button>
           {canReplace && (
-            <button className={styles.secondary} type="button" disabled={busy} onClick={replace}>Replace question</button>
+            <Button variant="outline" className={styles.secondary} type="button" disabled={busy} onClick={replace}>Replace question</Button>
           )}
         </div>
       ) : (
@@ -97,12 +112,12 @@ function TomeArtwork({
           {/* The API supplies a vetted crop as a data URL. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img key={attempt} src={question.artUrl} alt="Card illustration for this question" onError={() => setFailed(true)} />
-          <button className={styles.artworkButton} type="button" onClick={() => dialog.current?.showModal()}>Enlarge artwork</button>
+          <Button variant="outline" className={styles.artworkButton} type="button" onClick={() => dialog.current?.showModal()}>Enlarge artwork</Button>
         </>
       )}
       <dialog ref={dialog} className={styles.dialog} aria-label="Enlarged artwork">
         <form method="dialog">
-          <button className={styles.secondary} type="submit">Close artwork</button>
+          <Button variant="outline" className={styles.secondary} type="submit">Close artwork</Button>
         </form>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={question.artUrl} alt="Card illustration for this question" />
@@ -116,6 +131,7 @@ function TomeFeedback({ answer }: { answer: TomeAnswer }) {
   return (
     <div className={`${styles.feedback} ${correct ? styles.correct : styles.incorrect}`}>
       <strong><span aria-hidden="true">{correct ? "✓" : "×"} </span>{correct ? "Correct" : "Incorrect"}</strong>
+      <p className={styles.revealedCard}>{answer.cardName}</p>
       <p>{answer.explanation}</p>
     </div>
   );
@@ -125,22 +141,27 @@ function TomeResults({ snapshot, busy, start }: { snapshot: TomeSnapshot; busy: 
   const [review, setReview] = useState(false);
   return (
     <>
-      <p className={styles.score}>{snapshot.score} of {snapshot.total} correct</p>
-      <div className={styles.controls}>
-        <button type="button" className={styles.primary} disabled={busy} onClick={start}>
-          {busy ? "Loading trivia…" : "Play again"}
-        </button>
-        <button type="button" className={styles.secondary} onClick={() => setReview((value) => !value)}
-          aria-controls="tome-review" aria-expanded={review}>
-          {review ? "Hide answers" : "Review answers"}
-        </button>
+      <div className={styles.resultSummary}>
+        <p className={styles.score}>{snapshot.score} of {snapshot.total} correct</p>
+        <div className={styles.controls}>
+          <Button variant="outline" type="button" className={styles.primary} disabled={busy} onClick={start}>
+            {busy ? "Loading trivia…" : "Play again"}
+          </Button>
+          <Button variant="outline" type="button" className={styles.secondary} onClick={() => setReview((value) => !value)}
+            aria-controls="tome-review" aria-expanded={review}>
+            {review ? "Hide answers" : "Review answers"}
+          </Button>
+        </div>
       </div>
-      <ol className={styles.review} id="tome-review" hidden={!review}>
+      <ol role="list" className={styles.review} id="tome-review" hidden={!review}>
         {snapshot.answers.map((answer) => (
           <li key={answer.position}>
+            <p className={styles.progress}>Question {answer.position}</p>
             <h3>{answer.prompt}</h3>
-            <p>{answer.cardName}</p>
-            <p>Your answer: {answer.selected} · Correct answer: {answer.correct}</p>
+            <p className={styles.reviewAnswers}>
+              <span><strong>Your answer:</strong> {answer.selected}</span>
+              <span><strong>Correct answer:</strong> {answer.correct}</span>
+            </p>
             <TomeFeedback answer={answer} />
           </li>
         ))}
@@ -179,7 +200,7 @@ export function TomePlay() {
     } catch (issue) {
       setError(issue instanceof TomeRequestError
         ? issue
-        : new TomeRequestError("Couldn’t connect to Tome of Fyendal. Try again."));
+        : new TomeRequestError("Tome of Fyendal could not be reached. Please try again."));
     } finally {
       inFlight.current = false;
       setBusy(false);
@@ -210,50 +231,52 @@ export function TomePlay() {
       {error && (
         <div className={styles.requestError} role="alert">
           <p>{error.message}</p>
-          {error.expired && <button className={styles.secondary} type="button" onClick={start} disabled={busy}>Start new trivia</button>}
+          {error.expired && <Button variant="outline" className={styles.secondary} type="button" onClick={start} disabled={busy}>Start new trivia</Button>}
         </div>
       )}
       {!snapshot && <TomeIntro start={start} busy={busy} />}
       {snapshot?.status === "complete" && (
-        <section className={styles.panel} aria-labelledby={headingId}>
+        <section className={`${styles.panel} ${styles.session}`} aria-labelledby={headingId}>
           <h2 id={headingId} ref={section} tabIndex={-1}>Trivia results</h2>
           <TomeResults snapshot={snapshot} busy={busy} start={start} />
         </section>
       )}
       {snapshot && question && (
-        <section className={styles.panel} aria-labelledby={headingId}>
+        <section className={`${styles.panel} ${styles.session}`} aria-labelledby={headingId}>
           <p className={styles.progress}>Question {snapshot.position} of {snapshot.total}</p>
-          <h2 id={headingId} tabIndex={-1} ref={section}>{answer ? answer.cardName : question.prompt}</h2>
-          <TomeArtwork key={question.id} question={question} busy={busy || !!error?.expired}
-            canReplace={!answer} replace={() => advance("replace")} />
-          <form onSubmit={submit}>
-            <fieldset className={styles.options} disabled={busy || !!answer || !!error?.expired} aria-labelledby={answer ? undefined : headingId}>
-              {answer && <legend>{question.prompt}</legend>}
-              {question.choices.map((option) => {
-                const correct = answer?.correct === option.label;
-                const selected = answer?.selected === option.label;
-                return (
-                  <label key={option.id} className={styles.choice} data-correct={correct} data-incorrect={!!answer && selected && !correct}>
-                    <input type="radio" name={question.id} checked={answer ? selected : choice === option.id}
-                      onChange={() => setChoice(option.id)} />
-                    <span>{option.label}</span>
-                    {correct && <span className={styles.choiceTag}>Correct answer</span>}
-                    {selected && !correct && <span className={styles.choiceTag}>Your answer</span>}
-                  </label>
-                );
-              })}
-            </fieldset>
-            {answer ? (
-              <>
-                <TomeFeedback answer={answer} />
-                <button className={styles.primary} type="button" onClick={() => advance("next")} disabled={busy || !!error?.expired}>
-                  {snapshot.position === snapshot.total ? "See results" : "Next question"}
-                </button>
-              </>
-            ) : (
-              <button className={styles.primary} type="submit" disabled={!choice || busy || !!error?.expired}>Check answer</button>
-            )}
-          </form>
+          <h2 id={headingId} tabIndex={-1} ref={section}>{question.prompt}</h2>
+          <div className={styles.round}>
+            <TomeArtwork key={question.id} question={question} busy={busy || !!error?.expired}
+              canReplace={!answer} replace={() => advance("replace")} />
+            <form onSubmit={submit}>
+              <fieldset className={styles.options} disabled={busy || !!answer || !!error?.expired} aria-labelledby={headingId}>
+                {question.choices.map((option) => {
+                  const correct = answer?.correct === option.label;
+                  const selected = answer?.selected === option.label;
+                  return (
+                    <label key={option.id} className={styles.choice} data-correct={correct} data-incorrect={!!answer && selected && !correct}>
+                      <input type="radio" name={question.id} checked={answer ? selected : choice === option.id}
+                        onChange={() => setChoice(option.id)} />
+                      <span>{option.label}</span>
+                      <span className={styles.choiceTag}>
+                        {correct ? "Correct answer" : answer && selected ? "Your answer" : ""}
+                      </span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+              {answer ? (
+                <>
+                  <TomeFeedback answer={answer} />
+                  <Button variant="outline" className={styles.primary} type="button" onClick={() => advance("next")} disabled={busy || !!error?.expired}>
+                    {snapshot.position === snapshot.total ? "See results" : "Next question"}
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" className={styles.primary} type="submit" disabled={!choice || busy || !!error?.expired}>Check answer</Button>
+              )}
+            </form>
+          </div>
         </section>
       )}
     </div>

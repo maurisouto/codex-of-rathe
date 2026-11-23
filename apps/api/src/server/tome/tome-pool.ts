@@ -8,8 +8,8 @@ const prompts = {
   artist: "Who illustrated this artwork?",
   class: "Which class is listed on this card?",
   type: "Which subtype is listed on this card?",
-  set: "Which was the first verified commercial release of this artwork?",
-  year: "In which year was this artwork first verified to have been commercially released?",
+  set: "Which set was the first verified commercial release of this artwork?",
+  year: "In what year was this artwork’s first verified commercial release?",
 };
 
 export type TomeCategory = keyof typeof prompts;
@@ -115,12 +115,12 @@ export function createTomePool(
     const classes = distinct(family.flatMap((card) => card.classes ?? []));
     const commonClasses = sharedValues(family, printedClasses);
     for (const cardClass of commonClasses) {
-      add("class", cardClass, `${cardClass} is a class listed on ${entry.name}.`, classes);
+      add("class", cardClass, `${cardClass} is listed on ${entry.name}.`, classes);
     }
 
     const subtypes = distinct(family.flatMap(printedSubtypes));
     for (const subtype of sharedValues(family, printedSubtypes)) {
-      add("type", subtype, `${subtype} is a subtype listed on ${entry.name}.`, subtypes);
+      add("type", subtype, `${subtype} is a listed subtype of ${entry.name}.`, subtypes);
     }
 
     if (dates.get(entry.release) === entry.date) {
@@ -129,7 +129,7 @@ export function createTomePool(
       const sameDay = distinct(printings.map(setOfPrint).filter((set) => dates.get(set) === entry.date));
       const year = entry.date.slice(0, 4);
       if (sameDay.length === 1) {
-        add("set", entry.release, `The first verified commercial release of this artwork was ${entry.release}.`);
+        add("set", entry.release, `The first verified commercial release of this artwork was in ${entry.release}.`);
       }
       add("year", year, `The first verified commercial release of this artwork was in ${year}.`);
     }

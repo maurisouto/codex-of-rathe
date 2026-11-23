@@ -197,7 +197,7 @@ export default function HubHomePage() {
               Tome of Fyendal
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#BDCCE2] sm:text-[0.95rem]">
-              Study the artwork. Put your Flesh and Blood knowledge to the test.
+              Read the artwork. Recall its artist, its card, or its first release.
             </p>
             <Button asChild size="lg" variant="outline" className={cn(tomeStyles.entryButton, "mt-6 w-full motion-reduce:transition-none sm:w-auto")}>
               <Link href="/tome" target="_blank" rel="noopener noreferrer">
