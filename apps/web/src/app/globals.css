@@ -326,6 +326,11 @@
     background-attachment: fixed, fixed, fixed, fixed, fixed;
   }
 
+  .magical-app-bg-tome {
+    background-color: #081222;
+    background-image: radial-gradient(ellipse at 50% 0%, #10223A 0%, transparent 58%);
+  }
+
   /** Fragments of Rathe — arcane green veil. */
   .magical-app-bg-fragments {
     background-color: #0b1210;

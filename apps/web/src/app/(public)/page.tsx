@@ -41,7 +41,7 @@ export default function HubHomePage() {
           <p className="hidden text-xs text-[#93A7D4] sm:block">Choose an experience to enter.</p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Panel
             variant="textured"
             className={cn(
@@ -170,6 +170,32 @@ export default function HubHomePage() {
             >
               <Link href="/chronicle" target="_blank" rel="noopener noreferrer">
                 Enter Chronicle
+              </Link>
+            </Button>
+          </Panel>
+
+          <Panel
+            variant="subtle"
+            className="relative overflow-hidden border border-[#7089AA]/50 bg-[radial-gradient(ellipse_at_top,#244C77,transparent_70%),linear-gradient(155deg,#10223A,#081222)] p-6 shadow-[0_0_28px_rgba(153,201,255,0.1)] motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5 hover:border-[#99C9FF]/75 hover:shadow-[0_0_32px_rgba(153,201,255,0.18)] sm:p-8"
+          >
+            <div className="flex justify-center">
+              <Image
+                src="/assets/tome-of-fyendal-logo.png"
+                alt=""
+                width={2106}
+                height={593}
+                className={cn("h-12 w-auto max-w-full object-contain sm:h-14", homeLogoHover)}
+              />
+            </div>
+            <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#F1F7FF] sm:text-2xl">
+              Tome of Fyendal
+            </h3>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#BDCCE2] sm:text-[0.95rem]">
+              Use card art to answer Flesh and Blood trivia about artists, classes, and more.
+            </p>
+            <Button asChild size="lg" className="mt-6 w-full border-[#7089AA] bg-[#99C9FF] text-[#0A1F37] hover:bg-[#E0F0FF] sm:w-auto">
+              <Link href="/tome" target="_blank" rel="noopener noreferrer">
+                Enter Tome of Fyendal
               </Link>
             </Button>
           </Panel>

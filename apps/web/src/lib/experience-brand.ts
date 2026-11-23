@@ -7,7 +7,7 @@ export type Brand = "codex" | "guess" | "fragments";
 /**
  * Single source of truth: route → brand.
  *
- * Codex: hub, Chronicle, global profile, Codex public profile.
+ * Codex: hub, Chronicle, Tome, global profile, Codex public profile.
  * Guess: Guess app, gameplay modes, Guess profile, Guess public profile, leaderboard.
  */
 export function getBrandFromPathname(pathname: string | null | undefined): Brand {
@@ -15,7 +15,7 @@ export function getBrandFromPathname(pathname: string | null | undefined): Brand
   const path = pathname.split("?")[0]?.replace(/\/+$/, "") ?? "";
   const normalized = path === "" ? "/" : path;
 
-  if (normalized === "/" || normalized === "/chronicle" || normalized === "/chronicle/leaderboard" || normalized === "/profile") {
+  if (normalized === "/" || normalized === "/tome" || normalized === "/chronicle" || normalized === "/chronicle/leaderboard" || normalized === "/profile") {
     return "codex";
   }
 
