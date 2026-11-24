@@ -30,6 +30,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  applicationName: siteConfig.name,
   title: {
     default: siteConfig.name,
     template: `%s · ${siteConfig.shortName}`,
