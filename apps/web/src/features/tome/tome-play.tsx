@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { useAuth } from "@/components/auth/auth-context";
@@ -39,8 +40,8 @@ function TomeIntro({ start, busy, authPending }: { start: () => void; busy: bool
           {busy ? "Loading trivia…" : "Begin trivia"}
         </Button>
       </section>
-      <section className={styles.guide} aria-labelledby="tome-how">
-        <h2 id="tome-how">How to play</h2>
+      <section className={styles.guide} aria-labelledby="how">
+        <h2 id="how" tabIndex={-1}>How to play</h2>
         <ol role="list">
           <li>
             <h3>Examine the illustration</h3>
@@ -52,7 +53,7 @@ function TomeIntro({ start, busy, authPending }: { start: () => void; busy: bool
           </li>
           <li>
             <h3>Read the reveal</h3>
-            <p>Each correct answer earns one point. You can review all eight answers at the end.</p>
+            <p>Each correct answer earns one point. Review all eight answers at the end.</p>
           </li>
         </ol>
         <Panel variant="subtle" className={styles.example}>
@@ -75,6 +76,25 @@ function TomeIntro({ start, busy, authPending }: { start: () => void; busy: bool
             </details>
           </div>
         </Panel>
+      </section>
+      <section className={`${styles.guide} ${styles.faq}`} aria-labelledby="faq">
+        <h2 id="faq" tabIndex={-1}>FAQ</h2>
+        <details>
+          <summary>Do I need an account?</summary>
+          <p>You can play as a guest. To save your score and appear on the <Link href="/tome/leaderboard">leaderboard</Link>, sign in before selecting <strong>Begin trivia</strong> and finish all eight questions.</p>
+        </details>
+        <details>
+          <summary>How is my rank determined?</summary>
+          <p>The leaderboard ranks players by their best completed score out of eight. Players with the same best score share a rank.</p>
+        </details>
+        <details>
+          <summary>Which release counts?</summary>
+          <p>Release questions refer to the artwork’s first commercial release. The same illustration can appear again in later printings.</p>
+        </details>
+        <details>
+          <summary>What if an illustration doesn’t load?</summary>
+          <p>Select <strong>Retry image</strong>. If it still doesn’t load, select <strong>Replace question</strong> before checking an answer.</p>
+        </details>
       </section>
     </>
   );

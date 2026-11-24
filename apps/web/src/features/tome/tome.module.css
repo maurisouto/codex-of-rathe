@@ -55,7 +55,22 @@ body:has(.tome) {
   color-scheme: dark;
 }
 
-.tome :is(button, a):focus-visible,
+.setupLink { display: none; }
+
+body:has(.guide > :global(#how)) .setupLink { display: inline-flex; }
+
+.headerAuth > button,
+.headerAuth > div > button[aria-haspopup] {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.headerAuth :is(button, a):focus-visible {
+  outline: 2px solid #e0f0ff;
+  outline-offset: 2px;
+}
+
+.tome :is(button, a, summary, :global(#how), :global(#faq)):focus-visible,
 .choice:has(input:focus-visible) {
   outline: 2px solid var(--tome-focus);
   outline-offset: 3px;
@@ -161,6 +176,38 @@ body:has(.tome) {
 
 .guide strong {
   color: var(--tome-text);
+}
+
+.faq {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.faq details {
+  border: 1px solid #7089aa80;
+  border-radius: 0.75rem;
+  background: var(--tome-surface);
+}
+
+.faq summary {
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.faq summary::marker,
+.faq a {
+  color: var(--tome-accent);
+}
+
+.faq p {
+  padding: 0 1rem 1rem;
+}
+
+.faq a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 
 .example {
