@@ -17,6 +17,9 @@ export function PublicHeader() {
     return <ChronicleHeader leaderboard />;
   }
   if (pathname === "/tome" || pathname === "/tome/") return <TomeHeader />;
+  if (pathname === "/tome/leaderboard" || pathname === "/tome/leaderboard/") {
+    return <TomeHeader leaderboard />;
+  }
   if (brand === "codex") return <CodexHeader />;
   if (brand === "fragments") return <FragmentsHeader />;
   return <SiteHeader />;

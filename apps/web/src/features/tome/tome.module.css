@@ -570,3 +570,33 @@ body:has(.tome) {
     transition: none;
   }
 }
+
+.standings {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.standings :is(th, td) {
+  padding: 0.65rem 0.4rem;
+  border-bottom: 1px solid var(--tome-line);
+}
+
+.standings th[scope="row"] {
+  overflow-wrap: anywhere;
+  font-weight: 500;
+}
+
+.standings :is(td, th):last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.standings tr[data-personal] {
+  background: var(--tome-selected);
+}
+
+.standings a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

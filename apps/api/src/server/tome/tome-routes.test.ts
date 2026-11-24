@@ -128,3 +128,47 @@ describe("Tome solo API", () => {
     expect(categories).toEqual(new Set(["artist", "class", "type", "set", "year"]));
   });
 });
+
+it("binds ranked runs to their account and retries a failed save with the server score", async () => {
+  const recordResult = vi.fn(async (_runId: string, _userId: string, _score: number) => {});
+  recordResult.mockRejectedValueOnce(new Error("Database unavailable"));
+  const getLeaderboard = vi.fn(async (_userId: string | null) => ({ entries: [], personalBest: null }));
+  const testApp = createTomeRoutes(createTomeGame(() => fixtures), {
+    resolveUser: async (headers) => {
+      const token = headers.get("Authorization");
+      return token === "Bearer player" ? "player" : token === "Bearer other" ? "other" : null;
+    },
+    recordResult,
+    getLeaderboard,
+  });
+  const headers = { Authorization: "Bearer player" };
+  expect((await testApp.request("/runs", { method: "POST", headers: { Authorization: "invalid" } })).status).toBe(401);
+  expect((await testApp.request("/leaderboard")).status).toBe(200);
+  expect((await testApp.request("/leaderboard", { headers })).status).toBe(200);
+  expect(getLeaderboard.mock.calls).toEqual([[null], ["player"]]);
+
+  let state = await (await testApp.request("/runs", { method: "POST", headers })).json() as Snapshot;
+  function act(action: "answer" | "next", choiceId?: string, auth: Record<string, string> = headers) {
+    return testApp.request(`/runs/${state.runId}`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ action, questionId: state.question!.id, choiceId, score: 0 }),
+    });
+  }
+
+  expect((await act("answer", state.question!.choices[0].id, {})).status).toBe(404);
+  expect((await act("answer", state.question!.choices[0].id, { Authorization: "Bearer other" })).status).toBe(404);
+  for (let i = 0; i < 8; i++) {
+    const question = state.question!;
+    const correct = fixtures.find(({ artUrl }) => artUrl === question.artUrl)!.facts[0].answer;
+    const choice = question.choices.find(({ label }) => label === correct)!;
+    expect((await act("answer", choice.id)).status).toBe(200);
+    expect(recordResult).not.toHaveBeenCalled();
+    if (i === 7) expect((await act("next")).status).toBe(503);
+    const response = await act("next");
+    expect(response.status).toBe(200);
+    state = await response.json() as Snapshot;
+  }
+  expect(state).toMatchObject({ status: "complete", score: 8 });
+  expect(recordResult.mock.calls).toEqual([[state.runId, "player", 8], [state.runId, "player", 8]]);
+});

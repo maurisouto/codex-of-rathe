@@ -18,7 +18,7 @@ export function AppBackgroundSync() {
     const body = document.body;
     const brand = getBrandFromPathname(pathname);
     body.classList.remove(BG_GUESS, BG_CODEX, BG_FRAGMENTS, BG_TOME, LEGACY);
-    if (pathname === "/tome" || pathname === "/tome/") {
+    if (pathname === "/tome" || pathname?.startsWith("/tome/")) {
       body.classList.add(BG_TOME);
       return;
     }

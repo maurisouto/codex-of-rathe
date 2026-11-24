@@ -15,7 +15,7 @@ export function getBrandFromPathname(pathname: string | null | undefined): Brand
   const path = pathname.split("?")[0]?.replace(/\/+$/, "") ?? "";
   const normalized = path === "" ? "/" : path;
 
-  if (normalized === "/" || normalized === "/tome" || normalized === "/chronicle" || normalized === "/chronicle/leaderboard" || normalized === "/profile") {
+  if (normalized === "/" || normalized === "/tome" || normalized === "/tome/leaderboard" || normalized === "/chronicle" || normalized === "/chronicle/leaderboard" || normalized === "/profile") {
     return "codex";
   }
 

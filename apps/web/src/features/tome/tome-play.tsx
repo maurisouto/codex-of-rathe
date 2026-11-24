@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
+import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 
@@ -17,7 +18,7 @@ import {
 import exampleCard from "./assets/guide-wtr160.webp";
 import styles from "./tome.module.css";
 
-function TomeIntro({ start, busy }: { start: () => void; busy: boolean }) {
+function TomeIntro({ start, busy, authPending }: { start: () => void; busy: boolean; authPending: boolean }) {
   return (
     <>
       <section className={`${styles.panel} ${styles.hero}`} aria-labelledby="tome-title">
@@ -34,7 +35,7 @@ function TomeIntro({ start, busy }: { start: () => void; busy: boolean }) {
         <p className={styles.heroDescription}>
           Eight questions on Flesh and Blood card art, from the artist’s credit to the artwork’s first release.
         </p>
-        <Button variant="outline" size="lg" className={styles.primary} type="button" onClick={start} disabled={busy}>
+        <Button variant="outline" size="lg" className={styles.primary} type="button" onClick={start} disabled={busy || authPending}>
           {busy ? "Loading trivia…" : "Begin trivia"}
         </Button>
       </section>
@@ -171,6 +172,8 @@ function TomeResults({ snapshot, busy, start }: { snapshot: TomeSnapshot; busy: 
 }
 
 export function TomePlay() {
+  const { user, isLoading } = useAuth();
+  const ranked = useRef(false);
   const [snapshot, setSnapshot] = useState<TomeSnapshot | null>(null);
   const [choice, setChoice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -208,18 +211,24 @@ export function TomePlay() {
   }
 
   function start() {
-    void runTask(startTomeRun);
+    if (isLoading) return;
+    const signedIn = !!user;
+    void runTask(async () => {
+      const next = await startTomeRun(signedIn);
+      ranked.current = signedIn;
+      return next;
+    });
   }
 
   function advance(action: "next" | "replace") {
     if (!snapshot || !question) return;
-    void runTask(() => updateTomeRun(snapshot.runId, { action, questionId: question.id }));
+    void runTask(() => updateTomeRun(snapshot.runId, { action, questionId: question.id }, ranked.current));
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!snapshot || !question || !choice || answer || error?.expired) return;
-    void runTask(() => updateTomeRun(snapshot.runId, { action: "answer", questionId: question.id, choiceId: choice }));
+    void runTask(() => updateTomeRun(snapshot.runId, { action: "answer", questionId: question.id, choiceId: choice }, ranked.current));
   }
 
   return (
@@ -234,10 +243,11 @@ export function TomePlay() {
           {error.expired && <Button variant="outline" className={styles.secondary} type="button" onClick={start} disabled={busy}>Start new trivia</Button>}
         </div>
       )}
-      {!snapshot && <TomeIntro start={start} busy={busy} />}
+      {!snapshot && <TomeIntro start={start} busy={busy} authPending={isLoading} />}
       {snapshot?.status === "complete" && (
         <section className={`${styles.panel} ${styles.session}`} aria-labelledby={headingId}>
           <h2 id={headingId} ref={section} tabIndex={-1}>Trivia results</h2>
+          <p>{ranked.current ? "Result saved to your account." : "Sign in before playing to save your score."}</p>
           <TomeResults snapshot={snapshot} busy={busy} start={start} />
         </section>
       )}

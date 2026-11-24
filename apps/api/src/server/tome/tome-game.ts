@@ -25,6 +25,7 @@ export type TomeAction =
   | { action: "answer"; questionId: string; choiceId: string }
   | { action: "next" | "replace"; questionId: string };
 type Run = {
+  userId: string | null;
   expiresAt: number;
   questions: Question[];
   answers: Answer[];
@@ -123,7 +124,7 @@ export function createTomeGame(
     throw new TomeError(503, "The Tome needs more verified artwork to open another question.");
   }
 
-  function start() {
+  function start(userId: string | null = null) {
     const time = now();
     for (const [id, run] of runs) {
       if (run.expiresAt <= time) runs.delete(id);
@@ -135,16 +136,20 @@ export function createTomeGame(
     for (let i = 0; i < TOTAL; i++) {
       questions.push(deal(questions, categories[i % categories.length]));
     }
-    const run: Run = { expiresAt: time + ttlMs, questions, answers: [], replaced: [], position: 0 };
+    const run: Run = { userId, expiresAt: time + ttlMs, questions, answers: [], replaced: [], position: 0 };
     runs.set(runId, run);
     return snapshot(runId, run);
   }
 
-  function act(runId: string, action: TomeAction) {
+  function act(runId: string, action: TomeAction, userId: string | null = null) {
     const run = runs.get(runId);
     if (!run || run.expiresAt <= now()) {
       runs.delete(runId);
       throw new TomeError(404, "This round has expired. Start a new round to play again.");
+    }
+
+    if (run.userId !== userId) {
+      throw new TomeError(404, "This trivia session is unavailable for this account.");
     }
 
     if (run.lastAction && sameAction(run.lastAction, action)) return snapshot(runId, run);

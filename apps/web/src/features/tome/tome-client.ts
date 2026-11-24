@@ -1,3 +1,5 @@
+import { getSupabaseAccessTokenForApi } from "@/lib/auth/game-api-headers";
+
 export type TomeChoice = { id: string; label: string };
 
 export type TomeQuestion = {
@@ -39,10 +41,22 @@ export class TomeRequestError extends Error {
   }
 }
 
-async function request(path: string, body: TomeAction | Record<string, never>): Promise<TomeSnapshot> {
+async function tomeHeaders(signedIn: boolean) {
+  const headers = new Headers();
+  if (signedIn) {
+    const { accessToken } = await getSupabaseAccessTokenForApi();
+    if (!accessToken) throw new TomeRequestError("Sign in to your account to continue.");
+    headers.set("Authorization", `Bearer ${accessToken}`);
+  }
+  return headers;
+}
+
+async function request(path: string, body: TomeAction | Record<string, never>, signedIn: boolean): Promise<TomeSnapshot> {
+  const headers = await tomeHeaders(signedIn);
+  headers.set("Content-Type", "application/json");
   const response = await fetch(path, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
     body: JSON.stringify(body),
@@ -59,10 +73,24 @@ async function request(path: string, body: TomeAction | Record<string, never>): 
   return response.json() as Promise<TomeSnapshot>;
 }
 
-export function startTomeRun() {
-  return request(runsPath, {});
+export function startTomeRun(signedIn: boolean) {
+  return request(runsPath, {}, signedIn);
 }
 
-export function updateTomeRun(runId: string, action: TomeAction) {
-  return request(`${runsPath}/${encodeURIComponent(runId)}`, action);
+export function updateTomeRun(runId: string, action: TomeAction, signedIn: boolean) {
+  return request(`${runsPath}/${encodeURIComponent(runId)}`, action, signedIn);
+}
+
+type RankedScore = { rank: number; userId: string; displayName: string; score: number };
+
+export type TomeStandings = { entries: RankedScore[]; personalBest: RankedScore | null };
+
+export async function fetchTomeLeaderboard(signedIn: boolean, signal: AbortSignal) {
+  const response = await fetch("/api/tome/leaderboard", {
+    headers: await tomeHeaders(signedIn),
+    signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+    cache: "no-store",
+  });
+  if (!response.ok) throw new TomeRequestError("The standings could not be loaded.");
+  return response.json() as Promise<TomeStandings>;
 }
