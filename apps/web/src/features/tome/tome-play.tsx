@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from "react";
 
 import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
@@ -147,12 +147,12 @@ function TomeProgress({ position, total }: { position: number; total: number }) 
   );
 }
 
-function TomeFeedback({ answer }: { answer?: TomeAnswer }) {
+function TomeFeedback({ answer, labelRef }: { answer?: TomeAnswer; labelRef: Ref<HTMLParagraphElement> }) {
   return (
     <div className={styles.feedbackSlot}>
       {answer && (
         <div className={styles.feedback}>
-          <p className={styles.progress}>Previous answer · Question {answer.position}</p>
+          <p className={styles.progress} ref={labelRef}>Previous answer · Question {answer.position}</p>
           <p>
             <strong className={answer.selected === answer.correct ? styles.correct : styles.incorrect}>
               {answer.selected === answer.correct ? "Correct" : "Incorrect"}
@@ -211,6 +211,7 @@ export function TomePlay() {
   const [error, setError] = useState<TomeRequestError | null>(null);
   const inFlight = useRef(false);
   const section = useRef<HTMLHeadingElement>(null);
+  const feedbackLabel = useRef<HTMLParagraphElement>(null);
   const submitButton = useRef<HTMLButtonElement>(null);
   const headingId = useId();
 
@@ -224,8 +225,12 @@ export function TomePlay() {
     if (!heading) return;
     heading.focus({ preventScroll: true });
     const { top, bottom } = heading.getBoundingClientRect();
-    if (top < 0 || bottom > window.innerHeight) {
-      heading.scrollIntoView({ block: "nearest", behavior: "instant" });
+    const feedbackTop = feedbackLabel.current?.getBoundingClientRect().top ?? top;
+    // Show as much preceding feedback as fits while keeping the focused question in view.
+    const minScroll = Math.min(top, bottom - window.innerHeight);
+    const scroll = Math.max(minScroll, Math.min(0, feedbackTop));
+    if (scroll !== 0) {
+      window.scrollBy({ top: scroll < 0 ? Math.floor(scroll) : Math.ceil(scroll), behavior: "instant" });
     }
   }, [view, questionId]);
 
@@ -303,7 +308,7 @@ export function TomePlay() {
       {snapshot && question && (
         <section className={`${styles.panel} ${styles.session}`} aria-labelledby={headingId}>
           <TomeProgress position={snapshot.position} total={snapshot.total} />
-          <TomeFeedback answer={answer} />
+          <TomeFeedback answer={answer} labelRef={feedbackLabel} />
           <div className={styles.round}>
             <h2 id={headingId} tabIndex={-1} ref={section}>
               <span className="sr-only">Question {snapshot.position} of {snapshot.total}. </span>
