@@ -27,18 +27,20 @@ function TomeIntro({ start, busy, authPending }: { start: () => void; busy: bool
           src="/assets/tome-of-fyendal-logo.png"
           width={2106}
           height={593}
-          sizes="(max-width: 640px) 100vw, 512px"
+          sizes="(max-width: 600px) min(85vw, 360px), (max-width: 767px) min(85vw, 512px), (max-width: 896px) 43vw, 380px"
           className={styles.logo}
           alt=""
           loading="eager"
         />
-        <p className={styles.lead}>Every illustration has a record. How much of it can you recall?</p>
-        <p className={styles.heroDescription}>
-          Eight questions on Flesh and Blood card art, from the artist’s credit to the artwork’s first release.
-        </p>
-        <Button variant="outline" size="lg" className={styles.primary} type="button" onClick={start} disabled={busy || authPending}>
-          {busy ? "Loading trivia…" : "Begin trivia"}
-        </Button>
+        <div className={styles.heroCopy}>
+          <p className={styles.lead}>Every illustration has a record. How much of it can you recall?</p>
+          <p className={styles.heroDescription}>
+            Eight questions on Flesh and Blood card art, from the artist’s credit to the artwork’s first release.
+          </p>
+          <Button variant="outline" size="lg" className={styles.primary} type="button" onClick={start} disabled={busy || authPending}>
+            {busy ? "Loading trivia…" : "Begin trivia"}
+          </Button>
+        </div>
       </section>
       <section className={styles.guide} aria-labelledby="how">
         <h2 id="how" tabIndex={-1}>How to play</h2>
