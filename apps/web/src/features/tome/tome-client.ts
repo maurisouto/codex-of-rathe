@@ -4,7 +4,7 @@ export type TomeChoice = { id: string; label: string };
 
 export type TomeQuestion = {
   id: string;
-  category: "artist" | "class" | "type" | "set" | "year";
+  category: "artist" | "card" | "class" | "type" | "set" | "year" | "rarity";
   prompt: string;
   artUrl: string;
   choices: TomeChoice[];
