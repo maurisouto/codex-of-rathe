@@ -97,6 +97,7 @@ model User {
   fragmentsStat             UserFragmentsStat?
   fragmentsCardStats        UserFragmentsCardStat[]
   chronicleBestScores       ChronicleBestScore[]
+  tomeResults               TomeResult[]
 
   @@map("users")
 }
@@ -427,4 +428,16 @@ model ChronicleBestScore {
   @@id([userId, mode])
   @@index([mode, score])
   @@map("chronicle_best_scores")
+}
+
+model TomeResult {
+  runId       String   @id @map("run_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  score       Int
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, score])
+  @@map("tome_results")
 }

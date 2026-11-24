@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
 import chronicleStyles from "@/features/chronicle/chronicle.module.css";
+import tomeStyles from "@/features/tome/tome.module.css";
 import { cn } from "@/lib/utils/cn";
 
 const homeLogoHover = "motion-safe:transition-[filter] motion-safe:duration-300 hover:drop-shadow-[0_0_20px_rgba(201,162,39,0.5)]";
@@ -41,7 +42,7 @@ export default function HubHomePage() {
           <p className="hidden text-xs text-[#93A7D4] sm:block">Choose an experience to enter.</p>
         </div>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2">
           <Panel
             variant="textured"
             className={cn(
@@ -170,6 +171,37 @@ export default function HubHomePage() {
             >
               <Link href="/chronicle" target="_blank" rel="noopener noreferrer">
                 Enter Chronicle
+              </Link>
+            </Button>
+          </Panel>
+
+          <Panel
+            variant="subtle"
+            className={cn(
+              tomeStyles.hubTile,
+              "relative overflow-hidden border border-[#7089AA]/50 p-6 shadow-[0_0_28px_rgba(153,201,255,0.1)] sm:p-8",
+              "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
+              "hover:border-[#99C9FF]/75 hover:shadow-[0_0_32px_rgba(153,201,255,0.18)]",
+            )}
+          >
+            <div className="flex justify-center">
+              <Image
+                src="/assets/tome-of-fyendal-logo.png"
+                alt=""
+                width={2106}
+                height={593}
+                className={cn("h-12 w-auto max-w-full object-contain sm:h-14", homeLogoHover)}
+              />
+            </div>
+            <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#F1F7FF] sm:text-2xl">
+              Tome of Fyendal
+            </h3>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#BDCCE2] sm:text-[0.95rem]">
+              Read the artwork. Recall its artist, its card, or its first release.
+            </p>
+            <Button asChild size="lg" variant="outline" className={cn(tomeStyles.entryButton, "mt-6 w-full motion-reduce:transition-none sm:w-auto")}>
+              <Link href="/tome" target="_blank" rel="noopener noreferrer">
+                Enter Tome of Fyendal
               </Link>
             </Button>
           </Panel>

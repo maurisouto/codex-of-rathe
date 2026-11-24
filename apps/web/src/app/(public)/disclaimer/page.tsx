@@ -33,7 +33,7 @@ export default function DisclaimerPage() {
           <p>
             Codex of Rathe is an independent fan project for the Flesh and Blood community.
             This disclaimer covers the Codex hub and all its minigames, including Guess the Card,
-            Fragments of Rathe, and Chronicle of Rathe.
+            Fragments of Rathe, Chronicle of Rathe, and Tome of Fyendal.
           </p>
           <p>
             Codex of Rathe and its minigames are not affiliated with, endorsed by, sponsored by,
