@@ -175,7 +175,35 @@ it("bounds completed retries by capacity and expires them from completion", () =
   expect(third.retry).toThrow(expect.objectContaining({ status: 404 }));
 });
 
-it("binds ranked runs to their account and retries a failed save with the server score", async () => {
+it("confirms and advances a guest without saving a ranked result", async () => {
+  const recordResult = vi.fn();
+  const routes = createTomeRoutes(createTomeGame(() => fixtures), {
+    resolveUser: async () => null,
+    recordResult,
+    getLeaderboard: async () => ({ entries: [], personalBest: null }),
+  });
+  let state = await (await routes.request("/runs", { method: "POST" })).json() as Snapshot;
+  for (let position = 1; position <= 8; position++) {
+    const question = state.question!;
+    const response = await routes.request(`/runs/${state.runId}`, {
+      method: "POST",
+      body: JSON.stringify({ action: "confirm", questionId: question.id, choiceId: question.choices[0].id }),
+    });
+    expect(response.status).toBe(200);
+    state = await response.json() as Snapshot;
+    expect(state.answers).toHaveLength(position);
+    if (position < 8) {
+      expect(state).toMatchObject({ status: "question", position: position + 1 });
+      expect(state.question?.id).not.toBe(question.id);
+      expect(state.answers.every((answer) => !("artUrl" in answer))).toBe(true);
+    }
+  }
+  expect(state).toMatchObject({ status: "complete", question: null });
+  expect(state.answers.every(({ artUrl }) => !!artUrl)).toBe(true);
+  expect(recordResult).not.toHaveBeenCalled();
+});
+
+it("binds atomic confirmations to their account and retries a failed save with the server score", async () => {
   const recordResult = vi.fn(async (_runId: string, _userId: string, _score: number) => {});
   const getLeaderboard = vi.fn(async (_userId: string | null) => ({ entries: [], personalBest: null }));
   const testApp = createTomeRoutes(createTomeGame(() => fixtures, { maxRuns: 1 }), {
@@ -198,7 +226,7 @@ it("binds ranked runs to their account and retries a failed save with the server
   expect(getLeaderboard.mock.calls).toEqual([[null], ["player"]]);
 
   let state = await (await testApp.request("/runs", { method: "POST", headers })).json() as Snapshot;
-  function act(action: "answer" | "next", choiceId?: string, auth: Record<string, string> = headers) {
+  function act(action: "confirm" | "replace", choiceId?: string, auth: Record<string, string> = headers) {
     return testApp.request(`/runs/${state.runId}`, {
       method: "POST",
       headers: auth,
@@ -206,31 +234,46 @@ it("binds ranked runs to their account and retries a failed save with the server
     });
   }
 
-  expect((await act("answer", state.question!.choices[0].id, {})).status).toBe(404);
-  expect((await act("answer", state.question!.choices[0].id, { Authorization: "Bearer other" })).status).toBe(404);
+  expect((await act("confirm", state.question!.choices[0].id, {})).status).toBe(404);
+  expect((await act("confirm", state.question!.choices[0].id, { Authorization: "Bearer other" })).status).toBe(404);
+  const replacedArt = state.question!.artUrl;
+  const replacement = await act("replace");
+  expect(replacement.status).toBe(200);
+  state = await replacement.json() as Snapshot;
+  expect(state).toMatchObject({ position: 1, answers: [] });
+  expect(state.question?.artUrl).not.toBe(replacedArt);
+
+  const reviewedArt: string[] = [];
   for (let i = 0; i < 8; i++) {
     const question = state.question!;
+    reviewedArt.push(question.artUrl);
     const correct = fixtures.find(({ artUrl }) => artUrl === question.artUrl)!.facts[0].answer;
     const choice = question.choices.find(({ label }) => label === correct)!;
-    expect((await act("answer", choice.id)).status).toBe(200);
-    expect(recordResult).not.toHaveBeenCalled();
+    const other = question.choices.find(({ id }) => id !== choice.id)!;
+    if (i === 0) expect((await act("confirm", state.runId)).status).toBe(400);
     if (i === 7) {
-      expect((await act("next")).status).toBe(503);
+      expect((await act("confirm", choice.id)).status).toBe(503);
       expect(startWhileSaving).toBe(201);
-      expect((await act("next", undefined, { Authorization: "Bearer other" })).status).toBe(404);
-      expect((await act("answer", choice.id)).status).toBe(409);
-      const [first, second] = await Promise.all([act("next"), act("next")]);
-      expect(first.status).toBe(200);
-      const result = await first.json() as Snapshot;
-      expect(second.status).toBe(200);
-      expect(await second.json()).toEqual(result);
-      state = result;
-      break;
+      expect((await act("confirm", choice.id, { Authorization: "Bearer other" })).status).toBe(404);
+      expect((await act("confirm", other.id)).status).toBe(409);
     }
-    const response = await act("next");
-    expect(response.status).toBe(200);
-    state = await response.json() as Snapshot;
+    const [first, replay] = await Promise.all([act("confirm", choice.id), act("confirm", choice.id)]);
+    expect(first.status).toBe(200);
+    const next = await first.json() as Snapshot;
+    expect(replay.status).toBe(200);
+    expect(await replay.json()).toEqual(next);
+    if (i < 7) {
+      expect(next).toMatchObject({ status: "question", position: i + 2, score: i + 1 });
+      expect(next.answers).toHaveLength(i + 1);
+      expect(next.answers.at(-1)).toMatchObject({ correct, selected: correct });
+      expect(next.answers.at(-1)).not.toHaveProperty("artUrl");
+      expect((await act("confirm", other.id)).status).toBe(409);
+      expect(recordResult).not.toHaveBeenCalled();
+    }
+    state = next;
   }
   expect(state).toMatchObject({ status: "complete", score: 8 });
+  expect(state.answers.map(({ artUrl }) => artUrl)).toEqual(reviewedArt);
+  expect(reviewedArt).not.toContain(replacedArt);
   expect(recordResult.mock.calls).toEqual(Array.from({ length: 3 }, () => [state.runId, "player", 8]));
 });

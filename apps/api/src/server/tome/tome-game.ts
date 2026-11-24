@@ -21,9 +21,10 @@ type Answer = {
   correct: string;
   cardName: string;
   explanation: string;
+  artUrl?: string;
 };
 export type TomeAction =
-  | { action: "answer"; questionId: string; choiceId: string }
+  | { action: "answer" | "confirm"; questionId: string; choiceId: string }
   | { action: "next" | "replace"; questionId: string };
 type Run = {
   userId: string | null;
@@ -88,20 +89,22 @@ function snapshot(runId: string, run: Run) {
       artUrl: question.artwork.artUrl,
       choices: question.choices,
     } : null,
-    answers: [...run.answers],
+    answers: question
+      ? [...run.answers]
+      : run.answers.map((answer) => ({ ...answer, artUrl: run.questions[answer.position - 1].artwork.artUrl })),
   };
 }
 
 type CompletedRun = {
   userId: string | null;
   expiresAt: number;
-  finalQuestionId: string;
+  finalAction: TomeAction;
   result: ReturnType<typeof snapshot>;
 };
 
 function sameAction(previous: TomeAction, next: TomeAction): boolean {
   if (previous.action !== next.action || previous.questionId !== next.questionId) return false;
-  return previous.action !== "answer" || (next.action === "answer" && previous.choiceId === next.choiceId);
+  return !("choiceId" in previous) || ("choiceId" in next && previous.choiceId === next.choiceId);
 }
 
 export function createTomeGame(
@@ -167,7 +170,7 @@ export function createTomeGame(
       if (completed.userId !== userId) {
         throw new TomeError(404, "This trivia session is unavailable for this account.");
       }
-      if (action.action !== "next" || action.questionId !== completed.finalQuestionId) {
+      if (!sameAction(completed.finalAction, action)) {
         throw new TomeError(409, "This question is no longer active.");
       }
       return completed.result;
@@ -194,25 +197,27 @@ export function createTomeGame(
     if (action.action === "next") {
       if (!answered) throw new TomeError(409, "Check an answer before moving on.");
       run.position++;
-    } else {
-      if (action.action === "replace") {
-        if (answered) throw new TomeError(409, "You already answered this question.");
-        const replacement = deal([...run.questions, ...run.replaced], question.fact.category);
-        run.questions[run.position] = replacement;
-        run.replaced.push(question);
-      } else if (action.action === "answer") {
-        const selected = question.choices.find(({ id }) => id === action.choiceId);
-        if (!selected) throw new TomeError(400, "Choose one of this question's four answers.");
-        if (answered) return snapshot(runId, run);
-        run.answers.push({
-          position: run.position + 1,
-          prompt: question.fact.prompt,
-          selected: selected.label,
-          correct: question.fact.answer,
-          cardName: question.artwork.cardName,
-          explanation: question.fact.explanation,
-        });
+    } else if (action.action === "replace") {
+      if (answered) throw new TomeError(409, "You already answered this question.");
+      const replacement = deal([...run.questions, ...run.replaced], question.fact.category);
+      run.questions[run.position] = replacement;
+      run.replaced.push(question);
+    } else if ("choiceId" in action) {
+      const selected = question.choices.find(({ id }) => id === action.choiceId);
+      if (!selected) throw new TomeError(400, "Choose one of this question's four answers.");
+      if (answered) {
+        if (action.action === "confirm") throw new TomeError(409, "You already answered this question.");
+        return snapshot(runId, run);
       }
+      run.answers.push({
+        position: run.position + 1,
+        prompt: question.fact.prompt,
+        selected: selected.label,
+        correct: question.fact.answer,
+        cardName: question.artwork.cardName,
+        explanation: question.fact.explanation,
+      });
+      if (action.action === "confirm") run.position++;
     }
     run.lastAction = action;
     const result = snapshot(runId, run);
@@ -222,7 +227,7 @@ export function createTomeGame(
       completedRuns.set(runId, {
         userId,
         expiresAt: time + retryTtlMs,
-        finalQuestionId: question.id,
+        finalAction: action,
         result,
       });
       if (completedRuns.size > maxCompletedRuns) {
