@@ -56,7 +56,11 @@ function labelKey(label: string): string {
 
 function labelsByCategory(pool: readonly TomeArtwork[]): Map<TomeCategory, Map<string, string>> {
   const labels = new Map<TomeCategory, Map<string, string>>();
-  for (const { facts } of pool) {
+  for (const artwork of pool) {
+    const { facts } = artwork;
+    const cardNames = labels.get("card") ?? new Map<string, string>();
+    for (const name of artwork.relatedCardNames ?? []) cardNames.set(labelKey(name), name);
+    labels.set("card", cardNames);
     for (const { category, answer } of facts) {
       const candidates = labels.get(category) ?? new Map<string, string>();
       candidates.set(labelKey(answer), answer);

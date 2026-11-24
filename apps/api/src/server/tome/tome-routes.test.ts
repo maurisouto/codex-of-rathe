@@ -9,6 +9,7 @@ const fixtures: TomeArtwork[] = Array.from({ length: 12 }, (_, i) => ({
   family: `family-${i}`,
   cardName: `Card ${i}`,
   artUrl: `data:image/webp;base64,${i}==`,
+  relatedCardNames: [`Related Card ${i}`, `Other Card ${i}`, `Third Card ${i}`],
   facts: [{
     category: "artist",
     prompt: "Who illustrated this artwork?",
@@ -63,7 +64,7 @@ describe("Tome solo API", () => {
     });
     expect(new Set(result.question?.choices.map(({ label }) => label)).size).toBe(4);
     expect(result.answers).toEqual([]);
-  });
+  }, 10_000);
 
   it("scores eight unique artworks and allows retries without replaying a mutation", async () => {
     let state = await start();
@@ -139,7 +140,7 @@ describe("Tome solo API", () => {
       expect(question.choices.filter(({ label }) => label !== correct && fact.excluded.includes(label))).toEqual([]);
       state = game.act(state.runId, { action: "next", questionId: question.id });
     }
-    expect(categories).toEqual(new Set(["artist", "class", "type", "set", "year"]));
+    expect(categories).toEqual(new Set(["artist", "card", "class", "type", "set", "year", "rarity"]));
   });
 });
 

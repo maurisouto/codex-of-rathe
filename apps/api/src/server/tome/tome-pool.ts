@@ -6,10 +6,12 @@ import { loadChronicleIndex } from "@/server/chronicle/chronicle-index";
 
 const prompts = {
   artist: "Who illustrated this artwork?",
+  card: "Which card is shown in this artwork?",
   class: "Which class is listed on this card?",
   type: "Which subtype is listed on this card?",
   set: "Which set was the first verified commercial release of this artwork?",
   year: "In what year was this artwork’s first verified commercial release?",
+  rarity: "What rarity is this card’s verified printing?",
 };
 
 export type TomeCategory = keyof typeof prompts;
@@ -25,6 +27,7 @@ export type TomeArtwork = {
   artUrl: string;
   cardName: string;
   facts: readonly TomeFact[];
+  relatedCardNames: readonly string[];
 };
 
 function key(value: string): string {
@@ -85,6 +88,13 @@ export function createTomePool(
   releaseRecords: readonly { release: string; releaseDate: string }[],
 ): TomeArtwork[] {
   const families = new Map<string, Card[]>();
+  const cardMetadata = catalog.filter((card) => !card.isCardBack).map((card) => ({
+    name: card.name,
+    nameKey: key(card.name),
+    classes: (card.classes ?? []).map(key),
+    subtypes: printedSubtypes(card).map(key),
+    sets: card.printings.filter(commercial).map(setOfPrint).map(key),
+  }));
   const dates = dateForRelease(releaseRecords);
   const eligible = new Set(entries.map((entry) => key(entry.name)));
   for (const card of catalog) {
@@ -105,8 +115,26 @@ export function createTomePool(
     if (!shown.some((printing) => setOfPrint(printing) === entry.release)) return [];
 
     const facts: TomeFact[] = [];
+    const ownName = key(entry.name);
+    const relatedCardNames = distinct(cardMetadata
+      .filter((card) => card.nameKey !== ownName)
+      .filter((card) => {
+        return family.some((own) =>
+          (own.classes ?? []).some((value) => card.classes.includes(key(value))) ||
+          printedSubtypes(own).some((value) => card.subtypes.includes(key(value))) ||
+          own.printings.filter(commercial).some((printing) => card.sets.includes(key(setOfPrint(printing)))));
+      })
+      .map((card) => card.name));
+    if (relatedCardNames.length >= 3) {
+      add("card", entry.name, `The artwork shown is ${entry.name}.`, relatedCardNames);
+    }
     function add(category: TomeCategory, answer: string, explanation: string, excluded: readonly string[] = []) {
       facts.push({ category, prompt: prompts[category], answer, explanation, excluded });
+    }
+
+    const rarities = distinct(shown.map((printing) => printing.rarity ?? "").filter((rarity) => key(rarity) && key(rarity) !== "promo"));
+    if (rarities.length === 1) {
+      add("rarity", rarities[0], `${entry.name} has a verified ${rarities[0]} printing.`);
     }
 
     const artist = exactArtist(shown);
@@ -134,7 +162,7 @@ export function createTomePool(
       add("year", year, `The first verified commercial release of this artwork was in ${year}.`);
     }
 
-    return [{ family: key(entry.name), artUrl: entry.cropDataUrl, cardName: entry.name, facts }];
+    return [{ family: key(entry.name), artUrl: entry.cropDataUrl, cardName: entry.name, facts, relatedCardNames }];
   });
 }
 
