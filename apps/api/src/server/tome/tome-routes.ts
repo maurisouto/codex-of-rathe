@@ -6,7 +6,7 @@ function parseAction(body: unknown): TomeAction | null {
   if (!body || typeof body !== "object") return null;
   const { action, questionId, choiceId } = body as Record<string, unknown>;
   if (typeof questionId !== "string" || questionId.length !== 36) return null;
-  if (action === "answer" && typeof choiceId === "string" && choiceId.length === 36) {
+  if ((action === "answer" || action === "confirm") && typeof choiceId === "string" && choiceId.length === 36) {
     return { action, questionId, choiceId };
   }
   if (action === "next" || action === "replace") return { action, questionId };
@@ -61,7 +61,7 @@ export function createTomeRoutes(game: ReturnType<typeof createTomeGame>, result
           await results.recordResult(snapshot.runId, userId, snapshot.score);
         } catch (error) {
           console.error("Could not save Tome result", error);
-          return c.json({ error: "Your result could not be saved. Select See results to try again." }, 503);
+          return c.json({ error: "Your result could not be saved. Try again." }, 503);
         }
       }
       return c.json(snapshot);

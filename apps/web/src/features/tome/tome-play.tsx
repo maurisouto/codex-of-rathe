@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type Ref } from "react";
 
 import { useAuth } from "@/components/auth/auth-context";
 import { Button } from "@/components/ui/button";
@@ -55,7 +55,7 @@ function TomeIntro({ start, busy, authPending }: { start: () => void; busy: bool
           </li>
           <li>
             <h3>Read the reveal</h3>
-            <p>Each correct answer earns one point. Review all eight answers at the end.</p>
+            <p>Each correct answer earns one point. Checking your answer moves you to the next question. Review all eight answers at the end.</p>
           </li>
         </ol>
         <Panel variant="subtle" className={styles.example}>
@@ -105,17 +105,14 @@ function TomeIntro({ start, busy, authPending }: { start: () => void; busy: bool
 function TomeArtwork({
   question,
   busy,
-  canReplace,
   replace,
 }: {
   question: TomeQuestion;
   busy: boolean;
-  canReplace: boolean;
   replace: () => void;
 }) {
   const [attempt, setAttempt] = useState(0);
   const [failed, setFailed] = useState(false);
-  const dialog = useRef<HTMLDialogElement>(null);
 
   return (
     <div className={styles.artwork}>
@@ -126,66 +123,77 @@ function TomeArtwork({
             setFailed(false);
             setAttempt((value) => value + 1);
           }}>Retry image</Button>
-          {canReplace && (
-            <Button variant="outline" className={styles.secondary} type="button" disabled={busy} onClick={replace}>Replace question</Button>
-          )}
+          <Button variant="outline" className={styles.secondary} type="button" disabled={busy} onClick={replace}>Replace question</Button>
         </div>
       ) : (
-        <>
-          {/* The API supplies a vetted crop as a data URL. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img key={attempt} src={question.artUrl} alt="Card illustration for this question" onError={() => setFailed(true)} />
-          <Button variant="outline" className={styles.artworkButton} type="button" onClick={() => dialog.current?.showModal()}>Enlarge artwork</Button>
-        </>
+        // The API supplies a vetted crop as a data URL.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img key={attempt} src={question.artUrl} alt="Card illustration for this question" onError={() => setFailed(true)} />
       )}
-      <dialog ref={dialog} className={styles.dialog} aria-label="Enlarged artwork">
-        <form method="dialog">
-          <Button variant="outline" className={styles.secondary} type="submit">Close artwork</Button>
-        </form>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={question.artUrl} alt="Card illustration for this question" />
-      </dialog>
     </div>
   );
 }
 
-function TomeFeedback({ answer }: { answer: TomeAnswer }) {
-  const correct = answer.selected === answer.correct;
+function TomeProgress({ position, total }: { position: number; total: number }) {
   return (
-    <div className={`${styles.feedback} ${correct ? styles.correct : styles.incorrect}`}>
-      <strong><span aria-hidden="true">{correct ? "✓" : "×"} </span>{correct ? "Correct" : "Incorrect"}</strong>
-      <p className={styles.revealedCard}>{answer.cardName}</p>
-      <p>{answer.explanation}</p>
+    <div className={styles.steps} role="group" aria-label={`Trivia progress: ${position - 1} of ${total} answered`}>
+      <p className={styles.progress}>Question {position} of {total}</p>
+      <span className={styles.stepMarks} aria-hidden="true">
+        {Array.from({ length: total }, (_, index) => (
+          <span key={index} data-step={index + 1 === position ? "current" : index + 1 < position ? "complete" : "pending"} />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+function TomeFeedback({ answer, labelRef }: { answer?: TomeAnswer; labelRef: Ref<HTMLParagraphElement> }) {
+  return (
+    <div className={styles.feedbackSlot}>
+      {answer && (
+        <div className={styles.feedback}>
+          <p className={styles.progress} ref={labelRef}>Previous answer · Question {answer.position}</p>
+          <p>
+            <strong className={answer.selected === answer.correct ? styles.correct : styles.incorrect}>
+              {answer.selected === answer.correct ? "Correct" : "Incorrect"}
+            </strong>
+            {" · "}<strong>Correct answer:</strong> {answer.correct}
+          </p>
+          <p>{answer.explanation}</p>
+        </div>
+      )}
     </div>
   );
 }
 
 function TomeResults({ snapshot, busy, start }: { snapshot: TomeSnapshot; busy: boolean; start: () => void }) {
-  const [review, setReview] = useState(false);
   return (
     <>
       <div className={styles.resultSummary}>
         <p className={styles.score}>{snapshot.score} of {snapshot.total} correct</p>
-        <div className={styles.controls}>
-          <Button variant="outline" type="button" className={styles.primary} disabled={busy} onClick={start}>
-            {busy ? "Loading trivia…" : "Play again"}
-          </Button>
-          <Button variant="outline" type="button" className={styles.secondary} onClick={() => setReview((value) => !value)}
-            aria-controls="tome-review" aria-expanded={review}>
-            {review ? "Hide answers" : "Review answers"}
-          </Button>
-        </div>
+        <Button variant="outline" type="button" className={styles.primary} disabled={busy} onClick={start}>
+          {busy ? "Loading trivia…" : "Play again"}
+        </Button>
       </div>
-      <ol role="list" className={styles.review} id="tome-review" hidden={!review}>
+      <h3 className={styles.reviewTitle}>Answers review</h3>
+      <ol role="list" className={styles.review}>
         {snapshot.answers.map((answer) => (
           <li key={answer.position}>
-            <p className={styles.progress}>Question {answer.position}</p>
-            <h3>{answer.prompt}</h3>
-            <p className={styles.reviewAnswers}>
-              <span><strong>Your answer:</strong> {answer.selected}</span>
-              <span><strong>Correct answer:</strong> {answer.correct}</span>
-            </p>
-            <TomeFeedback answer={answer} />
+            {answer.artUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={answer.artUrl} alt="" loading="lazy" />
+            )}
+            <div>
+              <p className={styles.progress}>
+                Question {answer.position} · {answer.selected === answer.correct ? "Correct" : "Incorrect"}
+              </p>
+              <p className={styles.reviewPrompt}><strong>{answer.prompt}</strong></p>
+              <p className={styles.reviewAnswers}>
+                <span><strong>Your answer:</strong> {answer.selected}</span>
+                <span><strong>Correct answer:</strong> {answer.correct}</span>
+              </p>
+              <p className={styles.reviewExplanation}>{answer.explanation}</p>
+            </div>
           </li>
         ))}
       </ol>
@@ -198,20 +206,39 @@ export function TomePlay() {
   const ranked = useRef(false);
   const [snapshot, setSnapshot] = useState<TomeSnapshot | null>(null);
   const [choice, setChoice] = useState("");
+  const [submittedChoice, setSubmittedChoice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<TomeRequestError | null>(null);
   const inFlight = useRef(false);
   const section = useRef<HTMLHeadingElement>(null);
+  const feedbackLabel = useRef<HTMLParagraphElement>(null);
+  const submitButton = useRef<HTMLButtonElement>(null);
   const headingId = useId();
 
   const question = snapshot?.question;
-  const answer = snapshot?.status === "answered" ? snapshot.answers.at(-1) : undefined;
+  const answer = snapshot?.answers.at(-1);
   const view = snapshot?.status;
   const questionId = question?.id;
 
   useEffect(() => {
-    section.current?.focus();
+    const heading = section.current;
+    if (!heading) return;
+    heading.focus({ preventScroll: true });
+    const { top, bottom } = heading.getBoundingClientRect();
+    const feedbackTop = feedbackLabel.current?.getBoundingClientRect().top ?? top;
+    // Show as much preceding feedback as fits while keeping the focused question in view.
+    const minScroll = Math.min(top, bottom - window.innerHeight);
+    const scroll = Math.max(minScroll, Math.min(0, feedbackTop));
+    if (scroll !== 0) {
+      window.scrollBy({ top: scroll < 0 ? Math.floor(scroll) : Math.ceil(scroll), behavior: "instant" });
+    }
   }, [view, questionId]);
+
+  useEffect(() => {
+    if (submittedChoice && error && !error.expired && document.activeElement === document.body) {
+      submitButton.current?.focus({ preventScroll: true });
+    }
+  }, [error, submittedChoice]);
 
   async function runTask(task: () => Promise<TomeSnapshot>) {
     if (inFlight.current) return;
@@ -220,7 +247,8 @@ export function TomePlay() {
     setError(null);
     try {
       const next = await task();
-      if (next.status === "question") setChoice("");
+      setChoice("");
+      setSubmittedChoice(null);
       setSnapshot(next);
     } catch (issue) {
       setError(issue instanceof TomeRequestError
@@ -242,29 +270,33 @@ export function TomePlay() {
     });
   }
 
-  function advance(action: "next" | "replace") {
-    if (!snapshot || !question) return;
-    void runTask(() => updateTomeRun(snapshot.runId, { action, questionId: question.id }, ranked.current));
+  function replace() {
+    if (!snapshot || !question || submittedChoice || error?.expired) return;
+    void runTask(() => updateTomeRun(snapshot.runId, { action: "replace", questionId: question.id }, ranked.current));
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!snapshot || !question || !choice || answer || error?.expired) return;
-    void runTask(() => updateTomeRun(snapshot.runId, { action: "answer", questionId: question.id, choiceId: choice }, ranked.current));
+    const choiceId = submittedChoice ?? choice;
+    if (!snapshot || !question || !choiceId || error?.expired || inFlight.current) return;
+    setSubmittedChoice(choiceId);
+    void runTask(() => updateTomeRun(snapshot.runId, { action: "confirm", questionId: question.id, choiceId }, ranked.current));
   }
+
+  const requestError = error && (
+    <div className={styles.requestError} role="alert">
+      <p>{error.message}</p>
+      {error.expired && <Button variant="outline" className={styles.secondary} type="button" onClick={start} disabled={busy}>Start new trivia</Button>}
+    </div>
+  );
 
   return (
     <div className={styles.tome}>
       <h1 id="tome-title" className="sr-only">Tome of Fyendal</h1>
       <p className="sr-only" role="status">
-        {busy ? "Loading…" : answer ? `${answer.selected === answer.correct ? "Correct" : "Incorrect"}. ${answer.explanation}` : ""}
+        {answer && `Question ${answer.position}: ${answer.selected === answer.correct ? "Correct" : "Incorrect"}. Correct answer: ${answer.correct}.`}
       </p>
-      {error && (
-        <div className={styles.requestError} role="alert">
-          <p>{error.message}</p>
-          {error.expired && <Button variant="outline" className={styles.secondary} type="button" onClick={start} disabled={busy}>Start new trivia</Button>}
-        </div>
-      )}
+      {!question && requestError}
       {!snapshot && <TomeIntro start={start} busy={busy} authPending={isLoading} />}
       {snapshot?.status === "complete" && (
         <section className={`${styles.panel} ${styles.session}`} aria-labelledby={headingId}>
@@ -275,38 +307,29 @@ export function TomePlay() {
       )}
       {snapshot && question && (
         <section className={`${styles.panel} ${styles.session}`} aria-labelledby={headingId}>
-          <p className={styles.progress}>Question {snapshot.position} of {snapshot.total}</p>
-          <h2 id={headingId} tabIndex={-1} ref={section}>{question.prompt}</h2>
+          <TomeProgress position={snapshot.position} total={snapshot.total} />
+          <TomeFeedback answer={answer} labelRef={feedbackLabel} />
           <div className={styles.round}>
-            <TomeArtwork key={question.id} question={question} busy={busy || !!error?.expired}
-              canReplace={!answer} replace={() => advance("replace")} />
+            <h2 id={headingId} tabIndex={-1} ref={section}>
+              <span className="sr-only">Question {snapshot.position} of {snapshot.total}. </span>
+              {question.prompt}
+            </h2>
+            <TomeArtwork key={question.id} question={question} busy={busy || !!submittedChoice || !!error?.expired}
+              replace={replace} />
             <form onSubmit={submit}>
-              <fieldset className={styles.options} disabled={busy || !!answer || !!error?.expired} aria-labelledby={headingId}>
-                {question.choices.map((option) => {
-                  const correct = answer?.correct === option.label;
-                  const selected = answer?.selected === option.label;
-                  return (
-                    <label key={option.id} className={styles.choice} data-correct={correct} data-incorrect={!!answer && selected && !correct}>
-                      <input type="radio" name={question.id} checked={answer ? selected : choice === option.id}
-                        onChange={() => setChoice(option.id)} />
-                      <span>{option.label}</span>
-                      <span className={styles.choiceTag}>
-                        {correct ? "Correct answer" : answer && selected ? "Your answer" : ""}
-                      </span>
-                    </label>
-                  );
-                })}
+              <fieldset className={styles.options} disabled={busy || !!submittedChoice || !!error?.expired} aria-labelledby={headingId}>
+                {question.choices.map((option) => (
+                  <label key={option.id} className={styles.choice}>
+                    <input type="radio" name={question.id} checked={choice === option.id}
+                      onChange={() => setChoice(option.id)} />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
               </fieldset>
-              {answer ? (
-                <>
-                  <TomeFeedback answer={answer} />
-                  <Button variant="outline" className={styles.primary} type="button" onClick={() => advance("next")} disabled={busy || !!error?.expired}>
-                    {snapshot.position === snapshot.total ? "See results" : "Next question"}
-                  </Button>
-                </>
-              ) : (
-                <Button variant="outline" className={styles.primary} type="submit" disabled={!choice || busy || !!error?.expired}>Check answer</Button>
-              )}
+              {requestError}
+              <Button variant="outline" className={styles.primary} ref={submitButton} type="submit" disabled={!choice || busy || !!error?.expired}>
+                {submittedChoice && error && !error.expired ? "Retry answer" : "Check answer"}
+              </Button>
             </form>
           </div>
         </section>

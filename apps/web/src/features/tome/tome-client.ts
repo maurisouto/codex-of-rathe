@@ -17,6 +17,7 @@ export type TomeAnswer = {
   correct: string;
   cardName: string;
   explanation: string;
+  artUrl?: string;
 };
 
 export type TomeSnapshot = {
@@ -32,8 +33,8 @@ export type TomeSnapshot = {
 const runsPath = "/api/tome/runs";
 
 type TomeAction =
-  | { action: "answer"; questionId: string; choiceId: string }
-  | { action: "next" | "replace"; questionId: string };
+  | { action: "confirm"; questionId: string; choiceId: string }
+  | { action: "replace"; questionId: string };
 
 export class TomeRequestError extends Error {
   constructor(message: string, readonly expired = false) {
