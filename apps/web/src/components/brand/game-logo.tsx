@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { siteConfig } from "@/lib/config/site";
 import { codexAssetPaths, guessAssetPaths } from "@/lib/design-tokens";
 import { cn } from "@/lib/utils/cn";
 
@@ -48,8 +47,8 @@ export function GameLogo({
   const assets = brand === "codex" ? codexAssetPaths : guessAssetPaths;
   const src = assets[cfg.srcKey];
   const { intrinsic, className: sizeClass, fallbackClass } = cfg;
-  const alt = brand === "codex" ? CODEX_ALT : siteConfig.name;
-  const fallbackLabel = brand === "codex" ? "Codex" : siteConfig.shortName;
+  const alt = brand === "codex" ? CODEX_ALT : "Guess a Card, Any Card";
+  const fallbackLabel = brand === "codex" ? "Codex" : "GCAC";
 
   const inner = imgError ? (
     <span
