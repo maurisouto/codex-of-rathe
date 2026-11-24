@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { app } from "@/server/http-app";
 import { createTomeGame } from "./tome-game";
 import { loadTomePool, type TomeArtwork } from "./tome-pool";
@@ -22,7 +22,18 @@ type Snapshot = ReturnType<ReturnType<typeof createTomeGame>["start"]>;
 
 describe("Tome solo API", () => {
   const route = "/api/tome/runs";
-  const testApp = new Hono().route("/api/tome", createTomeRoutes(createTomeGame(() => fixtures)));
+  const recordResult = vi.fn();
+  let testApp: Hono;
+
+  beforeEach(() => {
+    const game = createTomeGame(() => fixtures, { maxRuns: 1 });
+    recordResult.mockClear();
+    testApp = new Hono().route("/api/tome", createTomeRoutes(game, {
+      resolveUser: async () => null,
+      recordResult,
+      getLeaderboard: async () => ({ entries: [], personalBest: null }),
+    }));
+  });
 
   async function start() {
     const result = await testApp.request(route, { method: "POST" });
@@ -56,6 +67,7 @@ describe("Tome solo API", () => {
 
   it("scores eight unique artworks and allows retries without replaying a mutation", async () => {
     let state = await start();
+    expect((await testApp.request(route, { method: "POST" })).status).toBe(503);
     const seen = new Set<string>();
     expect((await act(state, "next")).status).toBe(409);
     for (let index = 0; index < 8; index++) {
@@ -79,6 +91,8 @@ describe("Tome solo API", () => {
     }
     expect(state).toMatchObject({ status: "complete", score: 7, question: null, position: 8 });
     expect(state.answers).toHaveLength(8);
+    expect(recordResult).not.toHaveBeenCalled();
+    await start();
   });
 
   it("replaces an unanswered artwork without consuming the question and rejects invalid choices", async () => {
@@ -129,11 +143,42 @@ describe("Tome solo API", () => {
   });
 });
 
+it("bounds completed retries by capacity and expires them from completion", () => {
+  let time = 0;
+  const game = createTomeGame(() => fixtures, {
+    maxRuns: 1, maxCompletedRuns: 2, ttlMs: 50, retryTtlMs: 20, now: () => time,
+  });
+
+  function finish(elapsed = 0) {
+    let state = game.start();
+    time += elapsed;
+    for (let index = 0; index < 8; index++) {
+      const { id, choices } = state.question!;
+      game.act(state.runId, { action: "answer", questionId: id, choiceId: choices[0].id });
+      const next = { action: "next" as const, questionId: id };
+      state = game.act(state.runId, next);
+      if (state.status === "complete") return { result: state, retry: () => game.act(state.runId, next) };
+    }
+    throw new Error("Expected a completed run");
+  }
+
+  const first = finish(40);
+  time = 50;
+  expect(first.retry()).toEqual(first.result);
+  time = 51;
+  const second = finish();
+  time = 52;
+  const third = finish();
+  expect(first.retry).toThrow(expect.objectContaining({ status: 404 }));
+  expect(second.retry()).toEqual(second.result);
+  time = 72;
+  expect(third.retry).toThrow(expect.objectContaining({ status: 404 }));
+});
+
 it("binds ranked runs to their account and retries a failed save with the server score", async () => {
   const recordResult = vi.fn(async (_runId: string, _userId: string, _score: number) => {});
-  recordResult.mockRejectedValueOnce(new Error("Database unavailable"));
   const getLeaderboard = vi.fn(async (_userId: string | null) => ({ entries: [], personalBest: null }));
-  const testApp = createTomeRoutes(createTomeGame(() => fixtures), {
+  const testApp = createTomeRoutes(createTomeGame(() => fixtures, { maxRuns: 1 }), {
     resolveUser: async (headers) => {
       const token = headers.get("Authorization");
       return token === "Bearer player" ? "player" : token === "Bearer other" ? "other" : null;
@@ -142,6 +187,11 @@ it("binds ranked runs to their account and retries a failed save with the server
     getLeaderboard,
   });
   const headers = { Authorization: "Bearer player" };
+  let startWhileSaving: number | undefined;
+  recordResult.mockImplementationOnce(async () => {
+    startWhileSaving = (await testApp.request("/runs", { method: "POST", headers })).status;
+    throw new Error("Database unavailable");
+  });
   expect((await testApp.request("/runs", { method: "POST", headers: { Authorization: "invalid" } })).status).toBe(401);
   expect((await testApp.request("/leaderboard")).status).toBe(200);
   expect((await testApp.request("/leaderboard", { headers })).status).toBe(200);
@@ -164,11 +214,23 @@ it("binds ranked runs to their account and retries a failed save with the server
     const choice = question.choices.find(({ label }) => label === correct)!;
     expect((await act("answer", choice.id)).status).toBe(200);
     expect(recordResult).not.toHaveBeenCalled();
-    if (i === 7) expect((await act("next")).status).toBe(503);
+    if (i === 7) {
+      expect((await act("next")).status).toBe(503);
+      expect(startWhileSaving).toBe(201);
+      expect((await act("next", undefined, { Authorization: "Bearer other" })).status).toBe(404);
+      expect((await act("answer", choice.id)).status).toBe(409);
+      const [first, second] = await Promise.all([act("next"), act("next")]);
+      expect(first.status).toBe(200);
+      const result = await first.json() as Snapshot;
+      expect(second.status).toBe(200);
+      expect(await second.json()).toEqual(result);
+      state = result;
+      break;
+    }
     const response = await act("next");
     expect(response.status).toBe(200);
     state = await response.json() as Snapshot;
   }
   expect(state).toMatchObject({ status: "complete", score: 8 });
-  expect(recordResult.mock.calls).toEqual([[state.runId, "player", 8], [state.runId, "player", 8]]);
+  expect(recordResult.mock.calls).toEqual(Array.from({ length: 3 }, () => [state.runId, "player", 8]));
 });

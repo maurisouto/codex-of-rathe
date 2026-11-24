@@ -4,6 +4,7 @@ import type { TomeArtwork, TomeCategory, TomeFact } from "./tome-pool";
 const TOTAL = 8;
 const RUN_TTL_MS = 60 * 60 * 1000;
 const MAX_RUNS = 1_000;
+const MAX_COMPLETED_RUNS = 1_000;
 
 type Choice = { id: string; label: string };
 type Question = {
@@ -91,6 +92,13 @@ function snapshot(runId: string, run: Run) {
   };
 }
 
+type CompletedRun = {
+  userId: string | null;
+  expiresAt: number;
+  finalQuestionId: string;
+  result: ReturnType<typeof snapshot>;
+};
+
 function sameAction(previous: TomeAction, next: TomeAction): boolean {
   if (previous.action !== next.action || previous.questionId !== next.questionId) return false;
   return previous.action !== "answer" || (next.action === "answer" && previous.choiceId === next.choiceId);
@@ -98,9 +106,17 @@ function sameAction(previous: TomeAction, next: TomeAction): boolean {
 
 export function createTomeGame(
   getPool: () => readonly TomeArtwork[],
-  { now = Date.now, pick = randomInt, ttlMs = RUN_TTL_MS, maxRuns = MAX_RUNS } = {},
+  {
+    now = Date.now,
+    pick = randomInt,
+    ttlMs = RUN_TTL_MS,
+    maxRuns = MAX_RUNS,
+    retryTtlMs = RUN_TTL_MS,
+    maxCompletedRuns = MAX_COMPLETED_RUNS,
+  } = {},
 ) {
   const runs = new Map<string, Run>();
+  const completedRuns = new Map<string, CompletedRun>();
 
   function deal(used: readonly Question[], category?: TomeCategory): Question {
     const pool = getPool();
@@ -129,6 +145,9 @@ export function createTomeGame(
     for (const [id, run] of runs) {
       if (run.expiresAt <= time) runs.delete(id);
     }
+    for (const [id, run] of completedRuns) {
+      if (run.expiresAt <= time) completedRuns.delete(id);
+    }
     if (runs.size >= maxRuns) throw new TomeError(503, "The Tome is busy. Try again in a moment.");
     const runId = randomUUID();
     const questions: Question[] = [];
@@ -142,8 +161,21 @@ export function createTomeGame(
   }
 
   function act(runId: string, action: TomeAction, userId: string | null = null) {
+    const time = now();
+    const completed = completedRuns.get(runId);
+    if (completed && completed.expiresAt > time) {
+      if (completed.userId !== userId) {
+        throw new TomeError(404, "This trivia session is unavailable for this account.");
+      }
+      if (action.action !== "next" || action.questionId !== completed.finalQuestionId) {
+        throw new TomeError(409, "This question is no longer active.");
+      }
+      return completed.result;
+    }
+    if (completed) completedRuns.delete(runId);
+
     const run = runs.get(runId);
-    if (!run || run.expiresAt <= now()) {
+    if (!run || run.expiresAt <= time) {
       runs.delete(runId);
       throw new TomeError(404, "This round has expired. Start a new round to play again.");
     }
@@ -183,7 +215,22 @@ export function createTomeGame(
       }
     }
     run.lastAction = action;
-    return snapshot(runId, run);
+    const result = snapshot(runId, run);
+    if (result.status === "complete") {
+      // Release the active slot before the route awaits persistence.
+      runs.delete(runId);
+      completedRuns.set(runId, {
+        userId,
+        expiresAt: time + retryTtlMs,
+        finalQuestionId: question.id,
+        result,
+      });
+      if (completedRuns.size > maxCompletedRuns) {
+        const oldest = completedRuns.keys().next().value;
+        if (oldest !== undefined) completedRuns.delete(oldest);
+      }
+    }
+    return result;
   }
 
   return { start, act };
