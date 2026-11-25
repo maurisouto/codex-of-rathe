@@ -153,6 +153,34 @@ async function main() {
   await setViewport(1280);
   await goto("/runes");
   await waitFor(cdp, sessionId, "Boolean(document.querySelector('h1 img[alt=\"Read the Runes\"]'))", "setup header logo");
+  await cdp.evaluate("(()=>{const example=document.querySelector('[data-runes-example]');const rect=example.getBoundingClientRect();scrollTo({top:rect.top+scrollY-40,behavior:'instant'})})()", sessionId);
+  await waitFor(cdp, sessionId, "(()=>{const example=document.querySelector('[data-runes-example]');return example?.querySelectorAll('figure img').length===4 && [...example.querySelectorAll('img')].every((image)=>image.complete&&image.naturalWidth>0)})()", "four loaded example artwork crops");
+  const exampleContent = await cdp.evaluate(`(()=>{const example=document.querySelector('[data-runes-example]');const text=example.innerText;const gallery=example.querySelector('ol[aria-label="Four artwork options"]').getBoundingClientRect();const clue=example.querySelector('aside[aria-labelledby="example-current-clue"]').getBoundingClientRect();return {artworks:example.querySelectorAll('figure img').length,labels:[...example.querySelectorAll('figure figcaption')].map((item)=>item.innerText.trim()),text,desktopClueBesideGallery:clue.left>=gallery.right-1}})()`, sessionId);
+  assert.equal(exampleContent.artworks, 4, "the example presents four artwork choices");
+  assert.deepEqual(exampleContent.labels, ["A\nArtwork A", "B\nArtwork B", "C\nArtwork C", "D\nArtwork D"]);
+  assert.match(exampleContent.text, /Clues used: 1/);
+  assert.match(exampleContent.text, /Remaining: 1/);
+  assert.match(exampleContent.text, /CURRENT CLUE[\s\S]*Class[\s\S]*Runeblade/);
+  assert.equal(exampleContent.desktopClueBesideGallery, true, "desktop example places its current clue beside the artwork choices");
+  await cdp.evaluate("(()=>{const example=document.querySelector('[data-runes-example]');const rect=example.getBoundingClientRect();scrollTo({top:rect.top+scrollY-40,behavior:'instant'})})()", sessionId);
+  await sleep(150);
+  await saveScreenshot("how-to-example-desktop");
+  for (const width of [390, 320]) {
+    await setViewport(width, 844);
+    const mobileExample = await cdp.evaluate(`(()=>{const example=document.querySelector('[data-runes-example]');const rect=example.getBoundingClientRect();const gallery=example.querySelector('ol[aria-label="Four artwork options"]').getBoundingClientRect();const clue=example.querySelector('aside[aria-labelledby="example-current-clue"]').getBoundingClientRect();return {viewport:innerWidth,scroll:document.documentElement.scrollWidth,exampleWidth:rect.width,galleryWidth:gallery.width,clueTop:clue.top,galleryBottom:gallery.bottom}})()`, sessionId);
+    assert.ok(mobileExample.scroll <= mobileExample.viewport, `example has no horizontal overflow at ${width}px`);
+    assert.ok(mobileExample.exampleWidth <= width, `example fits the ${width}px viewport`);
+    assert.ok(mobileExample.clueTop >= mobileExample.galleryBottom, `current clue follows the artwork gallery at ${width}px`);
+    await cdp.evaluate("(()=>{const example=document.querySelector('[data-runes-example]');const rect=example.getBoundingClientRect();scrollTo({top:rect.top+scrollY-30,behavior:'instant'})})()", sessionId);
+    await sleep(120);
+    await saveScreenshot(width === 390 ? "how-to-example-mobile" : "how-to-example-mobile-320");
+  }
+  if (process.env.RUNES_EXAMPLE_ONLY === "1") {
+    results.push("How to Play example shows four loaded artwork crops, clue count and current verified clue at 1280/390/320px with no horizontal overflow");
+    console.log(JSON.stringify({ passed: results.length, results }, null, 2));
+    browser.socket.close();
+    return;
+  }
   await saveScreenshot("game-desktop");
   for (const width of [320, 390]) {
     await setViewport(width, 844);

@@ -169,10 +169,20 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .stepNumber { margin: 0 0 .35rem; color: #d4baff; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .helpGrid p,.faq p { color: #d8cbe7; line-height: 1.6; }
 .helpGrid .stepNumber { color: #d4baff; }
-.helpExample { display: grid; grid-template-columns: minmax(8rem,12rem) minmax(0,1fr); align-items: center; gap: 1rem; margin-top: 1.25rem; border: 1px solid #694d86; border-radius: .75rem; padding: .75rem; background: #10091c99; }
-.helpExample img { display: block; width: 100%; height: auto; aspect-ratio: 330/276; object-fit: cover; border-radius: .45rem; }
-.helpExample h3 { margin: 0 0 .5rem; font-family: var(--font-display); }
-.helpExample p { margin: .35rem 0; color: #d8cbe7; line-height: 1.55; }
+.helpExample { margin-top: 1.25rem; border: 1px solid #694d86; border-radius: .75rem; padding: .75rem; background: #10091c99; }
+.exampleHeader { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem 1rem; }
+.exampleHeader h3 { margin:0; font-family:var(--font-display); }
+.exampleCounter { display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; margin:0; border:1px solid #694d86; border-radius:999px; padding:.35rem .65rem; background:#211532; color:#e3d5f5; font-size:.8rem; font-variant-numeric:tabular-nums; }
+.exampleBoard { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(13rem,.75fr); align-items:stretch; gap:.75rem; margin-top:.75rem; }
+.exampleGallery { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; min-width:0; margin:0; padding:0; list-style:none; }
+.exampleChoice { height:100%; min-width:0; margin:0; border:1px solid #59466e; border-radius:.55rem; padding:.3rem; background:#10091c; }
+.exampleChoice img { display:block; width:100%; height:auto; aspect-ratio:330/276; object-fit:cover; border-radius:.35rem; }
+.exampleChoice figcaption { display:flex; align-items:center; gap:.4rem; min-height:2rem; color:#e3d5f5; font-size:.78rem; }
+.exampleChoice .letter { width:1.35rem; height:1.35rem; font-size:.72rem; }
+.exampleClue { align-self:stretch; padding:.85rem; }
+.exampleClue h4 { margin:.25rem 0; font-family:var(--font-display); font-size:1.1rem; }
+.exampleClue p { margin:.35rem 0; color:#d8cbe7; line-height:1.55; }
+.exampleClue .exampleValue { color:#fff; font-size:1.1rem; font-weight:700; }
 .faq details { border-top: 1px solid #49345e; padding: .8rem 0; }
 .faq summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 650; }
 .game { margin-top: 1.25rem; padding: clamp(.9rem,2.5vw,1.5rem); }
@@ -214,7 +224,7 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .helpDialog details { border-top:1px solid #49345e; padding:.45rem 0; }
 .helpDialog > h3 { margin: 1.5rem 0 .5rem; font-family: var(--font-display); }
 .helpDialog .helpGrid { grid-template-columns: 1fr; gap: .65rem; }
-.helpDialog .helpExample { grid-template-columns: minmax(5rem,8rem) minmax(0,1fr); }
+.helpDialog .exampleBoard { grid-template-columns:1fr; }
 .error { margin-top:1rem; border:1px solid #d9778c; border-radius:.6rem; padding:.8rem; color:#ffe2e8; }
 .table { width:100%; border-collapse:collapse; }
 .table th,.table td { padding:.7rem .5rem; border-bottom:1px solid #49345e; text-align:left; }
@@ -226,7 +236,7 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   .hero { grid-template-columns:1fr; gap:.7rem; text-align:left; }
   .heroLogoHeading { width:min(100%,17.5rem); }
   .helpGrid { grid-template-columns:1fr; }
-  .helpExample { grid-template-columns: minmax(5rem,8rem) minmax(0,1fr); }
+  .exampleBoard { grid-template-columns:1fr; }
   .board { grid-template-columns:1fr; }
   .cluePanel { order:2; }
   .gallery { order:1; }

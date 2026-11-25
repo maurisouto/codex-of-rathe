@@ -46,6 +46,13 @@ const RUNES_FAQ = [
   ["Are guest or practice rounds recorded?", "No. Guest and tutorial rounds do not enter records, stats, or rankings. Sign in before a ranked round to save its result."],
 ] as const;
 
+const EXAMPLE_ARTWORKS = [
+  { letter: "A", src: "/runes/crops/pool-02.webp", alt: "A spellcaster channels violet energy between rune circles." },
+  { letter: "B", src: "/runes/crops/pool-01.webp", alt: "A figure kneels beside an ember-lit rune carved into the ground." },
+  { letter: "C", src: "/runes/crops/pool-03.webp", alt: "A violet storm gathers around a distant tower." },
+  { letter: "D", src: "/runes/crops/pool-04.webp", alt: "A red-cloaked spellcaster sends lightning across a room." },
+] as const;
+
 function RunesHowToContent() {
   return <div data-runes-how-to>
     <p className={styles.helpIntro}>Four illustrations. A trail of clues. One answer.</p>
@@ -56,9 +63,27 @@ function RunesHowToContent() {
         <p>{body}</p>
       </li>)}
     </ol>
-    <div className={styles.helpExample}>
-      <Image unoptimized src="/runes/crops/pool-01.webp" alt="A warrior carves a glowing rune into the earth." width={330} height={276} />
-      <div><h3>Read the Runes · Example</h3><p><strong>Class</strong> · Runeblade</p><p>Runeblade is one clue on the trail. Follow the runes to uncover the matching artwork.</p></div>
+    <div className={styles.helpExample} data-runes-example>
+      <div className={styles.exampleHeader}>
+        <h3>Read the Runes · Example round</h3>
+        <p className={styles.exampleCounter}><span>Clues used: 1</span><span aria-hidden="true">·</span><span>Remaining: 1</span></p>
+      </div>
+      <div className={styles.exampleBoard}>
+        <ol className={styles.exampleGallery} aria-label="Four artwork options">
+          {EXAMPLE_ARTWORKS.map(({ letter, src, alt }) => <li key={letter}>
+            <figure className={styles.exampleChoice}>
+              <Image unoptimized src={src} alt={alt} width={330} height={276} />
+              <figcaption><span className={styles.letter} aria-hidden="true">{letter}</span><span>Artwork {letter}</span></figcaption>
+            </figure>
+          </li>)}
+        </ol>
+        <aside className={`${styles.panel} ${styles.exampleClue}`} aria-labelledby="example-current-clue">
+          <p className={styles.stepNumber}>Current clue</p>
+          <h4 id="example-current-clue">Class</h4>
+          <p className={styles.exampleValue}>Runeblade</p>
+          <p>Runeblade is one clue on the trail. Follow the runes to uncover the matching artwork.</p>
+        </aside>
+      </div>
     </div>
   </div>;
 }
