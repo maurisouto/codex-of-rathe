@@ -19,7 +19,7 @@ function elapsedLabel(ms: number) {
 const HOW_TO_STEPS = [
   {
     title: "Read the first clue",
-    body: "When all four illustrations have loaded, the timer starts and the first clue appears automatically. It counts as a clue used.",
+    body: "Each round has four clues. When all four illustrations have loaded, the timer starts and the first clue appears automatically. It counts as a clue used.",
   },
   {
     title: "Follow the trail",
@@ -36,6 +36,7 @@ const HOW_TO_STEPS = [
 ] as const;
 
 const RUNES_FAQ = [
+  ["How many clues are in a round?", "Every round has four clues. The first appears automatically and counts as one of the four."],
   ["When does the timer begin?", "After all four illustrations have loaded, the timer starts and the first clue appears automatically. It counts as a clue used."],
   ["Can I review clues?", "Yes. Every revealed clue stays in the history. Reviewing clues or this guide uses no extra clue, and the timer keeps running."],
   ["Can I change my answer?", "Yes. Change your selected artwork any time before you select Confirm answer. You can confirm only once."],
@@ -67,7 +68,7 @@ function RunesHowToContent() {
     <div className={styles.helpExample} data-runes-example>
       <div className={styles.exampleHeader}>
         <h3>Read the Runes · Example round</h3>
-        <p className={styles.exampleCounter}><span>Clues used: 1</span><span aria-hidden="true">·</span><span>Remaining: 1</span></p>
+        <p className={styles.exampleCounter}><span>Clues used: 1</span><span aria-hidden="true">·</span><span>Remaining: 3</span></p>
       </div>
       <div className={styles.exampleBoard}>
         <ol className={styles.exampleGallery} aria-label="Four artwork options">

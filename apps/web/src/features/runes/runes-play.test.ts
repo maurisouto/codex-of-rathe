@@ -22,9 +22,10 @@ const render = (snapshot: RunesSnapshot | null) => {
 it("renders the current run's authoritative count and history across consecutive rounds", () => {
   const first: RunesSnapshot = { runId: "first", mode: "ranked", status: "active", artworks: [], cluesUsed: 2, cluesRemaining: 0, elapsedMs: 0, clues: [clue(1, "Old class"), clue(2, "Old artist")] };
   expect(render(first)).toContain("Clues used: 2");
-  const second: RunesSnapshot = { ...first, runId: "second", cluesUsed: 1, cluesRemaining: 1, clues: [clue(1, "New class")] };
+  const second: RunesSnapshot = { ...first, runId: "second", cluesUsed: 1, cluesRemaining: 3, clues: [clue(1, "New class")] };
   const next = render(second);
   expect(next).toContain("Clues used: 1");
+  expect(next).toContain("Remaining: 3");
   expect(next).toContain("New class");
   expect(next).not.toContain("Old class");
   expect(next).not.toContain("Old artist");
@@ -38,7 +39,7 @@ it("keeps the illustrated guide without a tutorial CTA or in-round enlargement",
   expect(setup).toContain("data-runes-example");
   expect(setup).not.toContain("Start guided tutorial");
   expect(setup).not.toContain("tutorial-description");
-  const active = render({ runId: "new", mode: "ranked", status: "active", artworks: [{ id: "art", label: "Artwork A", cropUrl: "/runes/crops/pool-01.webp" }], cluesUsed: 1, cluesRemaining: 1, clues: [clue(1, "Runeblade")], elapsedMs: 0 });
+  const active = render({ runId: "new", mode: "ranked", status: "active", artworks: [{ id: "art", label: "Artwork A", cropUrl: "/runes/crops/pool-01.webp" }], cluesUsed: 1, cluesRemaining: 3, clues: [clue(1, "Runeblade")], elapsedMs: 0 });
   expect(active).toContain("How to play");
   expect(active).not.toContain("Enlarge");
   expect(active).not.toContain("Full card:");

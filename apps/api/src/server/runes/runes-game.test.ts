@@ -4,10 +4,10 @@ import { applyRunesAction, createRunesRun, RunesError, snapshotRun, type RunesAr
 import { createCachedRunesPool, createRunesTutorialPool, loadRunesTutorialPoolCached } from "./runes-pool";
 
 const artworks: RunesArtwork[] = [
-  { id: "00000000-0000-4000-8000-000000000001", name: "Target secret", cropUrl: "data:image/webp;base64,AAAA", fullImageUrl: "https://example.test/target.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Max Kostin" }] },
-  { id: "00000000-0000-4000-8000-000000000002", name: "Distractor one", cropUrl: "data:image/webp;base64,BBBB", fullImageUrl: "https://example.test/one.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Other One" }] },
-  { id: "00000000-0000-4000-8000-000000000003", name: "Distractor two", cropUrl: "data:image/webp;base64,CCCC", fullImageUrl: "https://example.test/two.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Other Two" }] },
-  { id: "00000000-0000-4000-8000-000000000004", name: "Distractor three", cropUrl: "data:image/webp;base64,DDDD", fullImageUrl: "https://example.test/three.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Wizard" }, { category: "artist", label: "Illustrated by", value: "Other Three" }] },
+  { id: "00000000-0000-4000-8000-000000000001", name: "Target secret", cropUrl: "data:image/webp;base64,AAAA", fullImageUrl: "https://example.test/target.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Max Kostin" }, { category: "form", label: "Card type", value: "Action" }, { category: "rarity", label: "Rarity", value: "Rare" }, { category: "year", label: "First release year", value: "2019" }] },
+  { id: "00000000-0000-4000-8000-000000000002", name: "Distractor one", cropUrl: "data:image/webp;base64,BBBB", fullImageUrl: "https://example.test/one.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Other One" }, { category: "form", label: "Card type", value: "Action" }, { category: "rarity", label: "Rarity", value: "Rare" }, { category: "year", label: "First release year", value: "2019" }] },
+  { id: "00000000-0000-4000-8000-000000000003", name: "Distractor two", cropUrl: "data:image/webp;base64,CCCC", fullImageUrl: "https://example.test/two.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Other Two" }, { category: "form", label: "Card type", value: "Action" }, { category: "rarity", label: "Rarity", value: "Rare" }, { category: "year", label: "First release year", value: "2019" }] },
+  { id: "00000000-0000-4000-8000-000000000004", name: "Distractor three", cropUrl: "data:image/webp;base64,DDDD", fullImageUrl: "https://example.test/three.png", set: "Set", facts: [{ category: "class", label: "Class", value: "Wizard" }, { category: "artist", label: "Illustrated by", value: "Other Three" }, { category: "form", label: "Card type", value: "Action" }, { category: "rarity", label: "Rarity", value: "Rare" }, { category: "year", label: "First release year", value: "2019" }] },
 ];
 const pickLast = (end: number) => end - 1;
 
@@ -18,7 +18,9 @@ describe("Read the Runes game", () => {
     expect(snapshotRun(run, 500).elapsedMs).toBe(0);
     const first = applyRunesAction(run, { action: "ready", requestId: "ready-1" }, 1_000) as ReturnType<typeof snapshotRun>;
     expect(first.status).toBe("active");
-    expect(first.clues).toEqual([{ number: 1, label: "Class", value: "Runeblade" }]);
+    expect(first.clues).toHaveLength(1);
+    expect(run.clueOrder).toHaveLength(4);
+    expect(first.cluesRemaining).toBe(3);
     expect(first.artworks).toHaveLength(4);
     expect(JSON.stringify(first)).not.toContain("Target secret");
     expect(JSON.stringify(first)).not.toContain("target.png");
@@ -32,10 +34,7 @@ describe("Read the Runes game", () => {
     const run = createRunesRun({ ownerKey: "guest:test", userId: null, mode: "ranked", pool: artworks, now: 0, pick: pickLast });
     applyRunesAction(run, { action: "ready", requestId: "ready" }, 500);
     const revealed = applyRunesAction(run, { action: "reveal", requestId: "reveal-1", expectedCluesRevealed: 1 }, 900) as ReturnType<typeof snapshotRun>;
-    expect(revealed.clues).toEqual([
-      { number: 1, label: "Class", value: "Runeblade" },
-      { number: 2, label: "Illustrated by", value: "Max Kostin" },
-    ]);
+    expect(revealed.clues).toHaveLength(2);
     const targetId = run.targetId;
     const answer = applyRunesAction(run, { action: "confirm", requestId: "confirm-1", artworkId: targetId }, 1_200) as ReturnType<typeof snapshotRun>;
     expect(answer.status).toBe("complete");
@@ -52,19 +51,19 @@ describe("Read the Runes game", () => {
   it("ends immediately for a wrong answer, including in tutorial mode", () => {
     const fixture = artworks.map((artwork, index) => ({ ...artwork, id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}` }));
     fixture[0]!.name = "Rune Flash";
-    fixture[0]!.facts = [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Dmitry Solodovnikov" }];
+    fixture[0]!.facts = [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Dmitry Solodovnikov" }, { category: "form", label: "Card type", value: "Action" }, { category: "cost", label: "Resource cost", value: "0" }];
     fixture[1]!.name = "Read the Runes";
-    fixture[1]!.facts = [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Max Kostin" }];
+    fixture[1]!.facts = [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Max Kostin" }, { category: "form", label: "Card type", value: "Action" }, { category: "cost", label: "Resource cost", value: "0" }];
     fixture[2]!.name = "Mauvrion Skies";
-    fixture[2]!.facts = [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Daria Khlebnikova" }];
+    fixture[2]!.facts = [{ category: "class", label: "Class", value: "Runeblade" }, { category: "artist", label: "Illustrated by", value: "Daria Khlebnikova" }, { category: "form", label: "Card type", value: "Action" }, { category: "cost", label: "Resource cost", value: "0" }];
     fixture[3]!.name = "Zap";
-    fixture[3]!.facts = [{ category: "class", label: "Class", value: "Wizard" }, { category: "artist", label: "Illustrated by", value: "Anastasiya Grintsova" }];
+    fixture[3]!.facts = [{ category: "class", label: "Class", value: "Wizard" }, { category: "artist", label: "Illustrated by", value: "Anastasiya Grintsova" }, { category: "form", label: "Card type", value: "Action" }, { category: "cost", label: "Resource cost", value: "0" }];
     const run = createRunesRun({ ownerKey: "guest:test", userId: null, mode: "tutorial", pool: fixture, now: 0 });
     applyRunesAction(run, { action: "ready", requestId: "ready" }, 10);
     const result = applyRunesAction(run, { action: "confirm", requestId: "wrong", artworkId: fixture[0]!.id }, 100) as ReturnType<typeof snapshotRun>;
     expect(result.status).toBe("complete");
     expect(result.result?.outcome).toBe("incorrect");
-    expect(result.clues).toHaveLength(2);
+    expect(result.clues).toHaveLength(4);
     expect(result.result?.cluesUsed).toBe(1);
     expect(result.cluesUsed).toBe(1);
     expect(snapshotRun(run).cluesUsed).toBe(1);
@@ -82,9 +81,11 @@ describe("Read the Runes game", () => {
       ["rune-flash-red", "ARC100-First"], ["read-the-runes-red", "ARC109-First"],
       ["mauvrion-skies-red", "CRU145-First"], ["zap-red", "ARC144-First"],
     ]);
-    expect(pool[1]?.facts).toEqual([
+    expect(pool[1]?.facts.slice(0, 4)).toEqual([
       { category: "class", label: "Class", value: "Runeblade" },
       { category: "artist", label: "Illustrated by", value: "Max Kostin" },
+      { category: "form", label: "Card type", value: "Action" },
+      { category: "cost", label: "Resource cost", value: "0" },
     ]);
     expect(createRunesTutorialPool(["data:image/webp;base64,AAAA", null, "data:image/webp;base64,CCCC", "data:image/webp;base64,DDDD"])).toEqual([]);
   });

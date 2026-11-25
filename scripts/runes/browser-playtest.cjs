@@ -337,7 +337,7 @@ async function main() {
   assert.equal(terminal.runId, secondRunId);
   assert.equal(terminal.cluesUsed, 1);
   assert.equal(terminal.result.cluesUsed, 1);
-  assert.equal(terminal.clues.length, 2, "review exposes unused clue without counting it");
+  assert.equal(terminal.clues.length, 4, "review exposes all four clues without counting unused ones");
   results.push("consecutive win/replay/loss resets count from 2 to 1; terminal review does not count unused clues");
 
   await clickButton(cdp, sessionId, "Back to setup");

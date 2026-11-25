@@ -61,6 +61,13 @@ function catalogClues(cardIdentifier: string, printing: Printing): RunesClue[] {
   const clues: RunesClue[] = [];
   if (classes.length === 1) clues.push({ category: "class", label: "Class", value: classes[0]! });
   if (artists.length === 1) clues.push({ category: "artist", label: "Illustrated by", value: artists[0]! });
+  const types = [...new Set((card.types ?? []).map((value) => value.trim()).filter(Boolean))];
+  if (types.length === 1) clues.push({ category: "form", label: "Card type", value: types[0]! });
+  if (typeof card.cost === "number") clues.push({ category: "cost", label: "Resource cost", value: String(card.cost) });
+  if (typeof card.defense === "number") clues.push({ category: "defense", label: "Defense", value: String(card.defense) });
+  if (typeof card.pitch === "number") clues.push({ category: "pitch", label: "Pitch", value: String(card.pitch) });
+  if (printing.rarity?.trim()) clues.push({ category: "rarity", label: "Rarity", value: printing.rarity.trim() });
+  if (printing.set?.trim()) clues.push({ category: "set", label: "Set", value: printing.set.trim() });
   return clues;
 }
 
@@ -82,8 +89,9 @@ export function createRunesTutorialPool(crops: readonly (string | null)[]): Rune
     });
   }
   const target = result[1];
-  if (!target || target.name !== "Read the Runes" || target.facts.length !== 2 ||
+  if (!target || target.name !== "Read the Runes" || target.facts.length < 4 ||
     target.facts[0]?.value !== "Runeblade" || target.facts[1]?.value !== "Max Kostin" ||
+    new Set(target.facts.slice(0, 4).map(({ category }) => category)).size !== 4 ||
     new Set(result.map(({ cropUrl }) => cropUrl)).size !== 4) return [];
   return result;
 }
