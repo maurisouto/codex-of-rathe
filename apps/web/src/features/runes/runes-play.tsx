@@ -37,18 +37,18 @@ function RoundResult({ snapshot, replay, reset, authenticated }: { snapshot: Run
   return (
     <section className={`${styles.panel} ${styles.result}`} aria-labelledby="runes-result-title">
       <div>
-        <p className={styles.eyebrow}>Round complete</p>
+        <p className={styles.eyebrow}>The round is complete</p>
         <h2 id="runes-result-title" tabIndex={-1} className={styles.title}>{won ? "Correct" : "Incorrect"}</h2>
         <p className={styles.lead}>
-          {won ? "You identified the artwork." : `Your answer was ${result.selectedArtwork.label}. The target was ${result.correctArtwork.label}.`}
+          {won ? "You uncovered the hidden artwork." : `You chose ${result.selectedArtwork.label}; the hidden artwork was ${result.correctArtwork.label}.`}
         </p>
         <p className={styles.status}>{result.cluesUsed} {result.cluesUsed === 1 ? "clue" : "clues"} · {elapsedLabel(result.elapsedMs)}</p>
-        {snapshot.mode === "tutorial" && <p className={styles.reveal}>Practice rounds do not count toward records or statistics.</p>}
+        {snapshot.mode === "tutorial" && <p className={styles.reveal}>This practice round leaves your records and statistics untouched.</p>}
         {snapshot.mode === "ranked" && !authenticated && <p className={styles.reveal}>Guest rounds are not saved to records, statistics, or rankings.</p>}
         {snapshot.mode === "ranked" && authenticated && result.recorded && (won
           ? <p className={styles.reveal}>{result.personalBest ? `Your best: ${result.personalBest.clues} clues · ${elapsedLabel(result.personalBest.elapsedMs)} · rank ${result.personalBest.rank}.` : "Your win was saved to the Read the Runes archive."}</p>
-          : <p className={styles.reveal}>This loss was saved to your Runes archive; only wins set a best record.</p>)}
-        {snapshot.mode === "ranked" && authenticated && !result.recorded && <p className={styles.error} role="alert">This round ended, but its result was not saved. Retry the same confirmation to save it.</p>}
+          : <p className={styles.reveal}>This loss is recorded in your Runes archive; only victories set a best record.</p>)}
+        {snapshot.mode === "ranked" && authenticated && !result.recorded && <p className={styles.error} role="alert">The round ended, but its record could not be saved. Retry the same confirmation to preserve it.</p>}
       </div>
       <section aria-labelledby="result-clues-title">
         <h3 id="result-clues-title">Clues revealed</h3>
@@ -83,19 +83,19 @@ function RunesHelpSections() {
     <section className={`${styles.panel} ${styles.help}`} id="how" aria-labelledby="how-title">
       <h2 id="how-title" tabIndex={-1}>How to play</h2>
       <div className={styles.helpGrid}>
-        <div><h3>Read each clue</h3><p>The first verified clue appears when the four artworks are ready. It counts as a clue used. Reveal more clues one at a time; previous clues stay visible.</p></div>
-        <div><h3>Choose an artwork</h3><p>Select one of four artworks. You can change your selection until you confirm your answer.</p></div>
-        <div><h3>Confirm once</h3><p>A correct answer wins. A wrong answer ends the round immediately. Even after the final clue, you still get one answer.</p></div>
+        <div><h3>Read each clue</h3><p>The first verified clue appears when all four artworks are ready and counts toward your total. Reveal further clues one at a time; every revealed clue remains at hand.</p></div>
+        <div><h3>Choose an artwork</h3><p>Study the four artworks and select one. Your choice may change until you confirm your answer.</p></div>
+        <div><h3>Confirm once</h3><p>A correct answer claims the victory. An incorrect answer ends the round at once. The final clue still leaves one answer to make.</p></div>
       </div>
     </section>
     <section className={`${styles.panel} ${styles.help} ${styles.faq}`} id="faq" aria-labelledby="faq-title">
       <h2 id="faq-title" tabIndex={-1}>FAQ</h2>
-      <details><summary>When does the first clue appear?</summary><p>After all four artwork crops load, the timer starts and the first verified clue appears automatically. It counts as a clue used.</p></details>
-      <details><summary>Can I review clues? Does that cost anything?</summary><p>Yes. Every revealed clue stays visible. Reviewing clues or help does not use another clue or pause the timer.</p></details>
+      <details><summary>When does the first clue appear?</summary><p>Once all four artwork crops load, the timer begins and the first verified clue is revealed automatically. It counts as a clue used.</p></details>
+      <details><summary>Can I review clues? Does that cost anything?</summary><p>Every revealed clue remains visible. Reviewing clues or help uses no additional clue, though the timer continues to run.</p></details>
       <details><summary>How many clues can I reveal?</summary><p>The available verified clues depend on the artworks in this round. Revealing the final clue still leaves one answer to confirm.</p></details>
-      <details><summary>What happens after I confirm?</summary><p>A correct answer wins. An incorrect answer ends the round immediately. You can change your choice until the one explicit confirmation; there is no second answer.</p></details>
-      <details><summary>How are the other artworks chosen?</summary><p>Each round uses distinct artwork crops with verified catalog facts. Duplicate artwork and ambiguous candidates are excluded.</p></details>
-      <details><summary>How are records ranked?</summary><p>Authenticated wins rank by fewest clues, then fastest time. Exact ties share a rank. Losses appear in your Runes archive but do not set a best record.</p></details>
+      <details><summary>What happens after I confirm?</summary><p>A correct answer wins the round; an incorrect answer ends it immediately. Choose carefully: your selection can change until your single confirmation.</p></details>
+      <details><summary>How are the other artworks chosen?</summary><p>Each round draws on four distinct artwork crops and verified catalog facts. Duplicate art and ambiguous candidates are left out.</p></details>
+      <details><summary>How are records ranked?</summary><p>Authenticated wins rank by fewest clues, then fastest time. Exact ties share a rank. Losses are kept in your Runes archive but do not set a best record.</p></details>
       <details><summary>Can guests play? Which modes are available?</summary><p>Guests can play, but guest rounds are not saved to records, stats, or rankings. Read the Runes currently supports solo rounds and a tutorial; co-op, competitive, and difficulty settings are not available.</p></details>
       <details><summary>Are card details visible during a round?</summary><p>No. Active play shows artwork crops and revealed clues. The complete card is revealed only after the round ends.</p></details>
     </section>
@@ -297,9 +297,9 @@ export function RunesPlay() {
             <section className={`${styles.panel} ${styles.hero}`}>
               <RuneEmblem className={styles.heroMark} />
               <div>
-                <p className={styles.eyebrow}>A Runechant trial</p>
+                <p className={styles.eyebrow}>A trial of Runechant and sight</p>
                 <h1 className={styles.title}>Read the Runes</h1>
-                <p className={styles.lead}>Read the clues. Identify the artwork. You get one final answer.</p>
+                <p className={styles.lead}>Read the verified clues, study each artwork, and make one decisive answer.</p>
                 <div className={styles.actions}>
                   <button className={styles.button} type="button" disabled={busy || Boolean(pendingAction) || authLoading || loading} onClick={() => void start("ranked")}>{busy ? "Preparing…" : "Start round"}</button>
                   <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy || Boolean(pendingAction) || loading} onClick={() => void start("tutorial")}>Try the tutorial</button>
@@ -315,7 +315,7 @@ export function RunesPlay() {
         {snapshot && !result && (
           <section className={`${styles.panel} ${styles.game}`} aria-labelledby="round-heading">
             <div className={styles.gameHeading}>
-              <div><p className={styles.eyebrow}>{snapshot.mode === "tutorial" ? "Guided practice" : "Solo round"}</p><h1 id="round-heading" className={styles.title}>Identify the artwork</h1></div>
+              <div><p className={styles.eyebrow}>{snapshot.mode === "tutorial" ? "Guided practice" : "Solo round"}</p><h1 id="round-heading" className={styles.title}>Identify the hidden artwork</h1></div>
               <div><p className={styles.status}>{snapshot.status === "active" ? `Time ${elapsedLabel(elapsed)}` : "Loading artwork…"}</p>{ready && <button ref={helpTrigger} className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => setHelpOpen(true)}>How to play &amp; FAQ</button>}</div>
             </div>
             {snapshot.status === "active" && <p className={styles.warning}>Clues used: {snapshot.clues.length} · Remaining: {snapshot.cluesRemaining}. One answer only; an incorrect answer ends the round immediately.</p>}
@@ -343,7 +343,7 @@ export function RunesPlay() {
                   {snapshot.cluesRemaining > 0 ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={!canReveal} onClick={reveal}>Read the Runes</button> : <p className={styles.status}>All clues revealed</p>}
                   <button className={styles.button} type="button" disabled={!ready || !selected || busy || Boolean(pendingAction)} onClick={confirm}>Confirm answer</button>
                 </div>
-                <p className={styles.warning}>You get one answer. A wrong answer ends the round.</p>
+                <p className={styles.warning}>One answer decides the round. An incorrect choice ends it immediately.</p>
               </aside>
             </div>
             <p className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</p>
@@ -358,10 +358,10 @@ export function RunesPlay() {
       <dialog ref={zoomDialog} className={styles.modal} aria-label="Enlarged artwork" onClose={() => { setZoomArt(null); requestAnimationFrame(() => zoomTrigger.current?.focus()); }} onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}><button ref={zoomClose} className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => zoomDialog.current?.close()}>Close</button>{zoomArt && <Image unoptimized width={330} height={276} src={zoomArt} alt="Enlarged artwork crop" />}</dialog>
       <dialog ref={helpDialog} className={styles.helpDialog} aria-labelledby="active-help-title" onClose={() => { setHelpOpen(false); requestAnimationFrame(() => helpTrigger.current?.focus()); }}>
         <div className={styles.gameHeading}><h2 id="active-help-title">How to play &amp; FAQ</h2><button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => helpDialog.current?.close()}>Close</button></div>
-        <p>The first clue appears after all four artworks load. It counts as used. Reveal more clues one at a time; all shown clues remain visible.</p>
-        <p>Select one artwork, change your selection if needed, then confirm once. A wrong answer ends the round immediately. The final clue still allows an answer.</p>
+        <p>The first clue appears after all four artworks load and counts as used. Reveal more clues one at a time; every revealed clue remains visible.</p>
+        <p>Select an artwork, revise your choice if needed, then confirm once. An incorrect answer ends the round immediately. The final clue still allows an answer.</p>
         <p>The timer continues while you review clues or this help. Only authenticated wins enter the leaderboard and establish best records. Guest and tutorial rounds are not saved to rankings or stats.</p>
-        <details><summary>How are distractors chosen?</summary><p>Each round uses four distinct original artwork crops with verified, applicable catalog clues. Duplicate art and ambiguous candidates are excluded; no card names appear until the result.</p></details>
+        <details><summary>How are distractors chosen?</summary><p>Each round uses four distinct artwork crops with verified, applicable catalog clues. Duplicate art and ambiguous candidates are excluded; card names remain hidden until the result.</p></details>
         <details><summary>Which modes are available?</summary><p>Solo rounds and deterministic tutorial practice are available. Co-op, competitive, and difficulty settings are not currently supported.</p></details>
       </dialog>
     </main>

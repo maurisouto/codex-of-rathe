@@ -207,8 +207,14 @@ export default function HubHomePage() {
           </Panel>
 
           <Panel
-            variant="subtle"
-            className="relative overflow-hidden border border-[#8B68B4]/55 bg-[radial-gradient(ellipse_at_90%_0%,#50366a88,transparent_60%),linear-gradient(155deg,#211532,#130d1f)] p-6 shadow-[0_0_28px_rgba(199,164,255,0.1)] transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-0.5 hover:border-[#C7A4FF]/80 hover:shadow-[0_0_34px_rgba(199,164,255,0.18)] sm:p-8"
+            variant="textured"
+            className={cn(
+              "relative overflow-hidden border border-[#8B68B4]/55 p-6 backdrop-blur-sm sm:p-8",
+              "bg-[radial-gradient(ellipse_at_90%_0%,#50366a88,transparent_60%),linear-gradient(155deg,#211532,#130d1f)]",
+              "shadow-[0_0_28px_rgba(199,164,255,0.1),inset_0_1px_0_rgba(228,205,255,0.08)]",
+              "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
+              "hover:border-[#C7A4FF]/80 hover:shadow-[0_0_34px_rgba(199,164,255,0.18),inset_0_1px_0_rgba(228,205,255,0.12)]",
+            )}
           >
             <div className="flex justify-center">
               <svg aria-hidden="true" viewBox="0 0 36 36" className="h-14 w-14 fill-none stroke-[#C7A4FF] stroke-[1.7]">
@@ -216,11 +222,11 @@ export default function HubHomePage() {
                 <path d="m10 24 6-2m4 7 2-6m6-1 4 4M7 31l4-5" />
               </svg>
             </div>
-            <h3 className="font-codex mt-3 text-xl font-semibold tracking-[0.08em] text-[#F3EBFF] sm:text-2xl">
+            <h3 className="font-display mt-3 text-xl font-semibold tracking-[0.04em] text-[#F3EBFF] sm:text-2xl">
               Read the Runes
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#D8CBE7] sm:text-[0.95rem]">
-              Read the clues. Identify the artwork. You get one final answer.
+              Uncover the verified clues, study the artwork, and make one decisive answer.
             </p>
             <Button asChild size="lg" className="mt-6 w-full border border-[#D6BCFF] bg-[#C7A4FF] text-[#211034] hover:bg-[#D7BEFF] sm:w-auto">
               <Link href="/runes" target="_blank" rel="noopener noreferrer">
