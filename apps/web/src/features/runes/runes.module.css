@@ -160,7 +160,7 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .button { min-height: 44px; border: 1px solid #d6bcff; border-radius: .5rem; background: #c7a4ff; color: #211034; padding: .65rem 1rem; font-weight: 700; }
 .button:hover { background: #d7beff; }
 .buttonSecondary { border-color: #9074ad; background: #2b1d3a; color: #f3ebff; }
-.button:focus-visible,.choice:focus-visible,.zoomButton:focus-visible,.faq summary:focus-visible { outline: 2px solid #e4cdff; outline-offset: 3px; }
+.button:focus-visible,.choice:focus-visible,.faq summary:focus-visible { outline: 2px solid #e4cdff; outline-offset: 3px; }
 .help { margin-top: 1.2rem; padding: clamp(1rem,3vw,1.5rem); }
 .help h2,.help h3 { margin: 0 0 .5rem; font-family: var(--font-display); }
 .helpIntro { margin: .5rem 0 1rem; color: #e3d5f5; line-height: 1.6; }
@@ -199,7 +199,6 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .optionLabel { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem; min-height:2.5rem; min-width:0; font-weight:700; }
 .art { display:block; width:100%; aspect-ratio:330/276; object-fit:cover; border-radius:.4rem; }
 .letter { display:grid; width:1.5rem; height:1.5rem; place-items:center; border:1px solid #9c82ba; border-radius:.3rem; color:#e4cdff; }
-.zoomButton { position:absolute; right:.6rem; top:.6rem; min-width:44px; min-height:44px; border:1px solid #b99ad5; border-radius:.4rem; background:#10091cd9; color:#fff; }
 .cluePanel { padding:1rem; }
 .cluePanel h3 { margin:0 0 .5rem; font-family:var(--font-display); }
 .clues { margin:0; padding:0; list-style:none; }
@@ -214,10 +213,6 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .resultGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
 .resultCard img { display:block; width:100%; max-height:20rem; aspect-ratio:450/628; object-fit:contain; background:#10091c; border-radius:.5rem; }
 .resultCard h3 { margin:.4rem 0 .2rem; }
-.modal { width:min(96vw,74rem); max-width:none; max-height:92svh; border:1px solid #9c82ba; border-radius:.75rem; padding:3.5rem 1rem 1rem; background:#10091c; color:#f3ebff; }
-.modal::backdrop { background:#080510e8; }
-.modal img { display:block; margin:0 auto; max-width:100%; max-height:84svh; object-fit:contain; }
-.modal button { position:absolute; right:1rem; top:1rem; min-width:44px; min-height:44px; }
 .helpDialog { width:min(94vw,46rem); max-height:88svh; overflow:auto; border:1px solid #9c82ba; border-radius:.75rem; padding:1.25rem; background:#211532; color:#f3ebff; }
 .helpDialog::backdrop { background:#080510dd; }
 .helpDialog summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }

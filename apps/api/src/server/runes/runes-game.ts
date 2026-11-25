@@ -44,6 +44,7 @@ export type RunesSnapshot = {
   artworks: { id: string; label: string; cropUrl: string }[];
   clues: { number: number; label: string; value: string }[];
   cluesRemaining: number;
+  cluesUsed: number;
   elapsedMs: number;
   result?: {
     outcome: "correct" | "incorrect";
@@ -159,6 +160,7 @@ export function snapshotRun(run: RunesRunState, now = Date.now()): RunesSnapshot
     artworks: run.artworks.map(publicArtwork),
     clues: (run.terminal ? run.clueOrder : run.clueOrder.slice(0, run.revealed)).map(({ label, value }, index) => ({ number: index + 1, label, value })),
     cluesRemaining: run.terminal ? 0 : run.clueOrder.length - run.revealed,
+    cluesUsed: run.revealed,
     elapsedMs: run.terminal?.elapsedMs ?? (run.startedAt === null ? 0 : Math.max(0, Math.min(now - run.startedAt, 60 * 60 * 1000))),
   };
   if (!run.terminal) return base;

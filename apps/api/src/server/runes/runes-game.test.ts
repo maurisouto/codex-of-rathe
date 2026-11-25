@@ -66,6 +66,8 @@ describe("Read the Runes game", () => {
     expect(result.result?.outcome).toBe("incorrect");
     expect(result.clues).toHaveLength(2);
     expect(result.result?.cluesUsed).toBe(1);
+    expect(result.cluesUsed).toBe(1);
+    expect(snapshotRun(run).cluesUsed).toBe(1);
     expect(result.cluesRemaining).toBe(0);
     expect(result.result?.correctArtwork.name).toBe("Read the Runes");
   });

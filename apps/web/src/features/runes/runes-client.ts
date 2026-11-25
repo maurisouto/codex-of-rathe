@@ -9,6 +9,7 @@ export type RunesSnapshot = {
   status: "loading" | "active" | "complete";
   artworks: RunesArtwork[];
   clues: RunesClue[];
+  cluesUsed: number;
   cluesRemaining: number;
   elapsedMs: number;
   result?: {

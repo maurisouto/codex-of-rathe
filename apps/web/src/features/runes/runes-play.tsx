@@ -99,7 +99,7 @@ async function runAction(runId: string, pending: PendingAction): Promise<RunesSn
   return requestRunes(`/api/runes/runs/${encodeURIComponent(runId)}`, pending, "POST");
 }
 
-function RoundResult({ snapshot, replay, reset, authenticated }: { snapshot: RunesSnapshot; replay: (mode: "ranked" | "tutorial") => void; reset: () => void; authenticated: boolean }) {
+function RoundResult({ snapshot, replay, reset, authenticated, disabled }: { snapshot: RunesSnapshot; replay: (mode: "ranked" | "tutorial") => void; reset: () => void; authenticated: boolean; disabled: boolean }) {
   const result = snapshot.result;
   if (!result) return null;
   const won = result.outcome === "correct";
@@ -139,8 +139,8 @@ function RoundResult({ snapshot, replay, reset, authenticated }: { snapshot: Run
         )}
       </div>
       <div className={styles.actions}>
-        <button className={styles.button} type="button" onClick={() => replay(snapshot.mode)}>Play again</button>
-        <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={reset}>Back to setup</button>
+        <button className={styles.button} type="button" disabled={disabled} onClick={() => replay(snapshot.mode)}>Play again</button>
+        <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={disabled} onClick={reset}>Back to setup</button>
         <Link className={`${styles.button} ${styles.buttonSecondary}`} href="/runes/leaderboard">Leaderboard</Link>
         <Link className={`${styles.button} ${styles.buttonSecondary}`} href="/">Back to Codex hub</Link>
       </div>
@@ -173,15 +173,11 @@ export function RunesPlay() {
   const [error, setError] = useState<string | null>(null);
   const [readyCount, setReadyCount] = useState(0);
   const [imageAttempt, setImageAttempt] = useState(0);
-  const [zoomArt, setZoomArt] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [announcement, setAnnouncement] = useState("");
   const loadedArt = useRef(new Set<string>());
   const clockAnchor = useRef<number | null>(null);
-  const zoomTrigger = useRef<HTMLButtonElement>(null);
-  const zoomClose = useRef<HTMLButtonElement>(null);
-  const zoomDialog = useRef<HTMLDialogElement>(null);
   const helpTrigger = useRef<HTMLButtonElement>(null);
   const helpDialog = useRef<HTMLDialogElement>(null);
   const starting = useRef(false);
@@ -246,7 +242,7 @@ export function RunesPlay() {
       if (pending.action === "confirm") window.sessionStorage.removeItem(selectionKey(snapshot.runId));
       syncClock(next);
       if (pending.action === "ready") setAnnouncement("Round ready. Clue 1 is revealed. Choose an artwork.");
-      else if (pending.action === "reveal") setAnnouncement(`Clue ${next.clues.length} revealed: ${next.clues.at(-1)?.label}, ${next.clues.at(-1)?.value}.`);
+      else if (pending.action === "reveal") setAnnouncement(`Clue ${next.cluesUsed} revealed: ${next.clues.at(-1)?.label}, ${next.clues.at(-1)?.value}.`);
       else setAnnouncement(next.result?.outcome === "correct" ? "Correct. Round complete." : "Incorrect. Round complete.");
       if (pending.action === "confirm") {
         requestAnimationFrame(() => document.getElementById("runes-result-title")?.focus({ preventScroll: true }));
@@ -280,6 +276,7 @@ export function RunesPlay() {
     setBusy(true);
     setError(null);
     setSelected(null);
+    setAnnouncement("");
     loadedArt.current.clear();
     setReadyCount(0);
     clockAnchor.current = null;
@@ -288,6 +285,7 @@ export function RunesPlay() {
         const ack: PendingAction = { action: "ack", requestId: crypto.randomUUID() };
         try {
           await runAction(snapshot.runId, ack);
+          window.sessionStorage.removeItem(selectionKey(snapshot.runId));
           setSnapshot(null);
           setPendingAction(null);
         } catch (cause) {
@@ -331,20 +329,13 @@ export function RunesPlay() {
   }, [busy, invoke, pendingAction, readyCount, snapshot]);
 
   useEffect(() => {
-    if (!zoomArt) return;
-    const dialog = zoomDialog.current;
-    if (dialog && !dialog.open) dialog.showModal();
-    zoomClose.current?.focus();
-  }, [zoomArt]);
-
-  useEffect(() => {
     const dialog = helpDialog.current;
     if (!dialog) return;
     if (helpOpen && !dialog.open) dialog.showModal();
     if (!helpOpen && dialog.open) dialog.close();
   }, [helpOpen]);
 
-  const reveal = () => void invoke({ action: "reveal", requestId: crypto.randomUUID(), expectedCluesRevealed: snapshot?.clues.length ?? 0 });
+  const reveal = () => void invoke({ action: "reveal", requestId: crypto.randomUUID(), expectedCluesRevealed: snapshot?.cluesUsed ?? 0 });
   const confirm = () => selected && void invoke({ action: "confirm", artworkId: selected, requestId: crypto.randomUUID() });
   const retry = () => pendingAction && void invoke(pendingAction);
   const reset = () => {
@@ -370,9 +361,7 @@ export function RunesPlay() {
                 <p className={styles.lead}>Read the verified clues, study each artwork, and make one decisive answer.</p>
                 <div className={styles.actions}>
                   <button className={styles.button} type="button" disabled={busy || Boolean(pendingAction) || loading} onClick={() => void start("ranked")}>{startingMode === "ranked" ? "Starting round…" : "Start round"}</button>
-                  <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy || Boolean(pendingAction) || loading} aria-describedby="tutorial-description" onClick={() => void start("tutorial")}>{startingMode === "tutorial" ? "Starting tutorial…" : "Start guided tutorial"}</button>
                 </div>
-                <p id="tutorial-description" className={styles.status}>Practice reading clues with the real Read the Runes card. This guided tutorial leaves your records and statistics unchanged.</p>
                 {loading && <p role="status" className={styles.status}>Checking for an active round…</p>}
                 {error && <div role="alert" className={styles.error}>
                   <p>{error}</p>
@@ -395,7 +384,7 @@ export function RunesPlay() {
               <div><p className={styles.eyebrow}>{snapshot.mode === "tutorial" ? "Guided practice" : "Solo round"}</p><h1 id="round-heading" className={styles.title}>Identify the hidden artwork</h1></div>
               <div><p className={styles.status}>{snapshot.status === "active" ? `Time ${elapsedLabel(elapsed)}` : "Loading artwork…"}</p>{ready && <button ref={helpTrigger} className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => setHelpOpen(true)}>How to play &amp; FAQ</button>}</div>
             </div>
-            {snapshot.status === "active" && <p className={styles.warning}>Clues used: {snapshot.clues.length} · Remaining: {snapshot.cluesRemaining}. One answer only; an incorrect answer ends the round immediately.</p>}
+            {snapshot.status === "active" && <p data-runes-clue-count className={styles.warning}>Clues used: {snapshot.cluesUsed} · Remaining: {snapshot.cluesRemaining}. One answer only; an incorrect answer ends the round immediately.</p>}
             <div className={styles.board}>
               <div>
                 <fieldset className={styles.gallery} disabled={!ready || Boolean(pendingAction)}>
@@ -407,7 +396,6 @@ export function RunesPlay() {
                         <Image unoptimized width={330} height={276} sizes="(max-width: 760px) 45vw, 27vw" className={styles.art} src={artwork.cropUrl} alt="" onLoad={() => handleImageLoad(artwork.id)} onError={() => handleImageError(artwork.id)} key={`${artwork.id}-${imageAttempt}`} />
                         <span className={styles.optionLabel}><span className={styles.letter} aria-hidden="true">{artwork.label.slice(-1)}</span><span>{artwork.label}</span></span>
                       </label>
-                      <button ref={(element) => { if (element && zoomArt === artwork.cropUrl) zoomTrigger.current = element; }} className={styles.zoomButton} type="button" aria-label={`Enlarge ${artwork.label}`} disabled={!ready || Boolean(pendingAction)} onClick={(event) => { zoomTrigger.current = event.currentTarget; setZoomArt(artwork.cropUrl); }}>Enlarge</button>
                     </div>
                   ))}
                 </fieldset>
@@ -429,10 +417,9 @@ export function RunesPlay() {
 
         {ready && <RunesHelpSections />}
 
-        {result && snapshot && <RoundResult snapshot={snapshot} replay={(mode) => void start(mode)} reset={reset} authenticated={Boolean(user)} />}
+        {result && snapshot && <RoundResult snapshot={snapshot} replay={(mode) => void start(mode)} reset={reset} authenticated={Boolean(user)} disabled={busy || Boolean(pendingAction)} />}
         {snapshot && error && <div className={styles.error} role="alert"><p>{error}</p>{pendingAction ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy} onClick={retry}>Retry same action</button> : snapshot?.status === "loading" ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => { loadedArt.current.clear(); setReadyCount(0); setImageAttempt((value) => value + 1); setError(null); }}>Retry artwork</button> : <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => setError(null)}>Dismiss</button>}</div>}
       </div>
-      <dialog ref={zoomDialog} className={styles.modal} aria-label="Enlarged artwork" onClose={() => { setZoomArt(null); requestAnimationFrame(() => zoomTrigger.current?.focus()); }} onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}><button ref={zoomClose} className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => zoomDialog.current?.close()}>Close</button>{zoomArt && <Image unoptimized width={330} height={276} src={zoomArt} alt="Enlarged artwork crop" />}</dialog>
       <dialog ref={helpDialog} className={styles.helpDialog} aria-labelledby="active-help-title" onClose={() => { setHelpOpen(false); requestAnimationFrame(() => helpTrigger.current?.focus()); }}>
         <div className={styles.gameHeading}><h2 id="active-help-title">How to play &amp; FAQ</h2><button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => helpDialog.current?.close()}>Close</button></div>
         <h3>How to play</h3><RunesHowToContent />

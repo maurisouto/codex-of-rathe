@@ -118,18 +118,17 @@ async function main() {
   const waiting = await cdp.evaluate(`({
     status: ${hero}.querySelector('[role=status]')?.textContent,
     disabled: [...${hero}.querySelectorAll('button')].map(button => button.disabled),
-    tutorial: document.getElementById(${hero}.querySelector('button[aria-describedby]').getAttribute('aria-describedby'))?.textContent
+    tutorial: ${hero}.querySelector('button[aria-describedby], #tutorial-description')?.textContent
   })`, sessionId);
   assert.match(waiting.status, /Checking for an active round/);
-  assert.deepEqual(waiting.disabled, [true, true]);
-  assert.match(waiting.tutorial, /real Read the Runes card/);
-  assert.match(waiting.tutorial, /records and statistics/);
+  assert.deepEqual(waiting.disabled, [true]);
+  assert.equal(waiting.tutorial, undefined);
   await cdp.evaluate("window.failFirstGuestCheck()", sessionId);
   await waitFor(cdp, sessionId, `Boolean(${hero}.querySelector('[role=alert]')) && !${hero}.querySelector('[role=status]')`, "recoverable guest session error in the hero");
   await clickButton(cdp, sessionId, "Retry round check");
-  await waitFor(cdp, sessionId, `!${hero}.querySelector('[role=alert], [role=status], button:disabled')`, "successful retry enables both round modes");
+  await waitFor(cdp, sessionId, `!${hero}.querySelector('[role=alert], [role=status], button:disabled')`, "successful retry enables Start round");
   await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier }, sessionId);
-  results.push("guest handshake, hero status, guided tutorial description, session failure and retry");
+  results.push("guest handshake, hero status, single start CTA, session failure and retry");
 
   await setViewport(1280);
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "no-preference" }] }, sessionId);
@@ -240,8 +239,25 @@ async function main() {
   }
   results.push("setup How to play and FAQ header anchors");
 
-  await clickButton(cdp, sessionId, "Start guided tutorial");
+  // Keep API tutorial coverage after removing its setup CTA.
+  assert.equal(await cdp.evaluate("[...document.querySelectorAll('button')].some(b => b.textContent.includes('Start guided tutorial'))", sessionId), false);
+  await cdp.evaluate(`(async()=>{const r=await fetch('/api/runes/runs',{method:'POST',headers:{'Content-Type':'application/json','x-guest-id':localStorage.getItem('gac-guest-token')},body:JSON.stringify({mode:'tutorial'})});if(r.status!==201)throw new Error(await r.text())})()`, sessionId, true);
+  await goto("/runes");
   await waitFor(cdp, sessionId, "document.querySelectorAll('[data-runes-active] input:enabled').length===4", "tutorial ready");
+  const assertClueCount = async (expected, previousRunId) => {
+    const { status, payload } = await verifyNoAnswerLeak(cdp, sessionId);
+    assert.equal(status, 200);
+    assert.equal(payload.cluesUsed, expected);
+    assert.equal(payload.clues.length, expected);
+    if (previousRunId) assert.notEqual(payload.runId, previousRunId);
+    const displayedClues = await cdp.evaluate("[...document.querySelectorAll('[data-runes-active] aside ol li')].map(li=>li.textContent)", sessionId);
+    assert.equal(displayedClues.length, expected);
+    payload.clues.forEach(clue => assert.ok(displayedClues[clue.number - 1].includes(clue.value)));
+    const text = await cdp.evaluate("document.querySelector('[data-runes-clue-count]')?.textContent", sessionId);
+    assert.match(text, new RegExp(`^Clues used: ${expected} ·`));
+    return payload.runId;
+  };
+  const firstRunId = await assertClueCount(1);
   let info = await inspect(cdp, sessionId);
   assert.deepEqual(info.images.map(({ width, height, complete }) => [width, height, complete]), Array.from({ length: 4 }, () => [330, 276, true]));
   const activePayload = await verifyNoAnswerLeak(cdp, sessionId);
@@ -258,6 +274,7 @@ async function main() {
   await clickButton(cdp, sessionId, "Read the Runes");
   await waitFor(cdp, sessionId, "document.body.innerText.includes('Max Kostin')", "second tutorial clue");
   assert.equal((await inspect(cdp, sessionId)).radios[1].checked, true, "reveal retains selected artwork");
+  await assertClueCount(2);
 
   await clickButton(cdp, sessionId, "How to play & FAQ");
   await waitFor(cdp, sessionId, "document.querySelector('dialog[aria-labelledby=active-help-title]')?.open===true", "in-game help dialog");
@@ -279,17 +296,11 @@ async function main() {
   await cdp.evaluate("document.querySelector('header a[href=\"#faq\"]')?.click()", sessionId);
   await waitFor(cdp, sessionId, "location.hash==='#faq' && Boolean(document.getElementById('faq'))", "active FAQ anchor");
   assert.equal((await inspect(cdp, sessionId)).radios[1].checked, true, "anchor navigation keeps selected artwork and run");
-  results.push("active help dialog and How/FAQ anchors work without losing selection; timer continues");
+  await assertClueCount(2);
+  results.push("active help and clue review do not increment server or UI count; timer continues");
 
-  await cdp.evaluate("document.querySelector('button[aria-label=\"Enlarge Artwork A\"]')?.click()", sessionId);
-  await waitFor(cdp, sessionId, "document.querySelector('dialog[aria-label=\"Enlarged artwork\"]')?.open===true", "artwork enlargement dialog");
-  await cdp.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 }, sessionId);
-  await cdp.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 }, sessionId);
-  await waitFor(cdp, sessionId, "document.querySelector('dialog[aria-label=\"Enlarged artwork\"]')?.open===false", "close enlarged artwork");
-  await waitFor(cdp, sessionId, "document.activeElement.getAttribute('aria-label')==='Enlarge Artwork A'", "restore focus after enlarged artwork closes");
-  assert.equal(await cdp.evaluate("document.activeElement.getAttribute('aria-label')", sessionId), "Enlarge Artwork A", "Escape returns focus to the enlargement trigger");
-  assert.equal((await inspect(cdp, sessionId)).radios[1].checked, true, "enlargement does not change selection");
-  results.push("crop enlargement is a native modal; Escape restores trigger focus and keeps selection");
+  assert.equal(await cdp.evaluate("Boolean(document.querySelector('button[aria-label^=Enlarge], dialog[aria-label=\"Enlarged artwork\"]'))", sessionId), false);
+  results.push("fixed artwork crops without enlargement control or modal");
 
   const radios = await cdp.send("Accessibility.getFullAXTree", {}, sessionId);
   const radioNodes = radios.nodes.filter((node) => node.role?.value === "radio");
@@ -308,10 +319,12 @@ async function main() {
   assert.match(resultText, /practice round leaves your records and statistics untouched/);
   assert.match(resultText, /Max Kostin/);
   assert.match(resultText, /Clues revealed/);
+  assert.equal(await cdp.evaluate("Boolean(document.querySelector('img[alt^=\"Full card:\"]'))", sessionId), true);
   results.push("tutorial correct answer reveals full card and terminal clue review");
 
   await clickButton(cdp, sessionId, "Play again");
   await waitFor(cdp, sessionId, "Boolean(document.querySelector('[data-runes-active] input:enabled'))", "tutorial replay ready");
+  const secondRunId = await assertClueCount(1, firstRunId);
   await cdp.evaluate("document.querySelectorAll('input[name=\"runes-artwork\"]')[0].click()", sessionId);
   await clickButton(cdp, sessionId, "Confirm answer");
   await waitFor(cdp, sessionId, "document.getElementById('runes-result-title')?.innerText==='Incorrect'", "tutorial immediate loss");
@@ -320,12 +333,18 @@ async function main() {
   assert.match(resultText, /Read the Runes/);
   assert.match(resultText, /1 clue/);
   assert.match(resultText, /Illustrated by[\s\S]*Max Kostin/);
-  results.push("early wrong tutorial answer loses immediately; terminal review shows unused clue and target");
+  const terminal = (await verifyNoAnswerLeak(cdp, sessionId)).payload;
+  assert.equal(terminal.runId, secondRunId);
+  assert.equal(terminal.cluesUsed, 1);
+  assert.equal(terminal.result.cluesUsed, 1);
+  assert.equal(terminal.clues.length, 2, "review exposes unused clue without counting it");
+  results.push("consecutive win/replay/loss resets count from 2 to 1; terminal review does not count unused clues");
 
   await clickButton(cdp, sessionId, "Back to setup");
   await waitFor(cdp, sessionId, "Boolean(document.querySelector('h1 img[alt=\"Read the Runes\"]'))", "back to setup after ack");
   await clickButton(cdp, sessionId, "Start round");
   await waitFor(cdp, sessionId, "Boolean(document.querySelector('[data-runes-active] input:enabled'))", "ranked guest round ready", 30_000);
+  const rankedRunId = await assertClueCount(1, secondRunId);
   for (const width of [320, 390, 768, 1280]) {
     await setViewport(width, 780, width === 320 ? 2 : 1);
     const layout = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:typeof e.className==='string'?e.className:'',x:Math.round(e.getBoundingClientRect().x),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width),parent:e.parentElement?.tagName+'.'+(typeof e.parentElement?.className==='string'?e.parentElement.className:''),parentX:Math.round(e.parentElement?.getBoundingClientRect().x??0),parentWidth:Math.round(e.parentElement?.getBoundingClientRect().width??0),text:e.innerText?.slice(0,50)})).filter(e=>e.right>innerWidth+1).slice(0,8)})", sessionId);
@@ -343,6 +362,13 @@ async function main() {
   const guestStatsAfterResult = await cdp.evaluate(`(async()=>{const r=await fetch('/api/runes/stats',{headers:{'x-guest-id':${JSON.stringify(storage.token)}}});return await r.json()})()`, sessionId, true);
   assert.equal(guestStatsAfterResult.games, 0, "completed guest rounds remain excluded from recorded stats");
   results.push("guest can finish a round; result copy disclaims records and guest stats remain empty");
+
+  await clickButton(cdp, sessionId, "Play again");
+  await waitFor(cdp, sessionId, "Boolean(document.querySelector('[data-runes-active] input:enabled'))", "ranked replay ready", 30_000);
+  await assertClueCount(1, rankedRunId);
+  const selected = await cdp.evaluate("[...document.querySelectorAll('input[name=runes-artwork]')].some(r => r.checked)", sessionId);
+  assert.equal(selected, false, "new ranked round does not inherit the previous selection");
+  results.push("new ranked game and ranked replay both start at one with distinct run IDs");
 
   await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, sessionId).then(({ data }) => fs.writeFileSync("/tmp/read-the-runes-active.png", Buffer.from(data, "base64")));
   console.log(JSON.stringify({ passed: results.length, results }, null, 2));

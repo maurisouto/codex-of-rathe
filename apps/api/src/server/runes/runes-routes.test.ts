@@ -121,6 +121,60 @@ describe("Read the Runes API recovery and idempotency", () => {
     expect((await readJson<{ clues: unknown[] }>(retry)).clues).toHaveLength(2);
   });
 
+  it("isolates clue counts and action retries across consecutive acknowledged rounds", async () => {
+    const app = await appPromise;
+    const readyKey = requestId();
+    const revealKey = requestId();
+    const confirmKey = requestId();
+    const ackKey = requestId();
+    const completed = [];
+    const postAction = (path: string, body: object) => app.request(path, {
+      method: "POST", headers, body: JSON.stringify(body),
+    });
+    type Snapshot = { runId: string; status: string; clues: unknown[]; cluesUsed: number; result?: { outcome: string; cluesUsed: number } };
+
+    for (const outcome of ["correct", "incorrect"]) {
+      const response = await app.request("/api/runes/runs", { method: "POST", headers, body: JSON.stringify({ mode: "ranked" }) });
+      expect(response.status).toBe(201);
+      const initial = await readJson<Snapshot>(response);
+      expect(initial.status).toBe("loading");
+      expect(initial.clues).toHaveLength(0);
+      expect(initial.cluesUsed).toBe(0);
+      const path = `/api/runes/runs/${initial.runId}`;
+      const ready = await readJson<Snapshot>(await postAction(path, { action: "ready", requestId: readyKey }));
+      expect(ready.status).toBe("active");
+      expect(ready.clues).toHaveLength(1);
+      expect(ready.cluesUsed).toBe(1);
+      expect((await readJson<Snapshot>(await postAction(path, { action: "ready", requestId: readyKey }))).clues).toHaveLength(1);
+      // Opening help or reviewing clues only reads the current round.
+      for (let read = 0; read < 2; read++) {
+        const current = await readJson<Snapshot>(await app.request("/api/runes/runs", { headers }));
+        expect(current.runId).toBe(initial.runId);
+        expect(current.clues).toHaveLength(1);
+        expect(current.cluesUsed).toBe(1);
+      }
+      const reveal = { action: "reveal", requestId: revealKey, expectedCluesRevealed: 1 };
+      expect((await readJson<Snapshot>(await postAction(path, reveal))).clues).toHaveLength(2);
+      expect((await readJson<Snapshot>(await postAction(path, reveal))).clues).toHaveLength(2);
+      expect((await postAction(path, { ...reveal, requestId: requestId() })).status).toBe(409);
+      const state = testState.runs.get(initial.runId)!.state;
+      const artworkId = outcome === "correct" ? state.targetId : state.artworks.find(({ id }) => id !== state.targetId)!.id;
+      const terminal = await readJson<Snapshot>(await postAction(path, { action: "confirm", requestId: confirmKey, artworkId }));
+      expect(terminal.status).toBe("complete");
+      expect(terminal.cluesUsed).toBe(2);
+      expect(terminal.result).toMatchObject({ outcome, cluesUsed: 2 });
+      expect((await readJson<Snapshot>(await app.request("/api/runes/runs", { headers }))).result).toEqual(terminal.result);
+      expect(await readJson(await postAction(path, { action: "ack", requestId: ackKey }))).toMatchObject({ acknowledged: true });
+      expect(await readJson(await postAction(path, { action: "ack", requestId: ackKey }))).toMatchObject({ acknowledged: true });
+      expect((await app.request("/api/runes/runs", { headers })).status).toBe(404);
+      completed.push(state);
+    }
+    expect(completed[0]!.runId).not.toBe(completed[1]!.runId);
+    expect(completed.map(({ status, revealed }) => ({ status, revealed }))).toEqual([
+      { status: "closed", revealed: 2 }, { status: "closed", revealed: 2 },
+    ]);
+  });
+
   it("records authenticated losses in stats storage while excluding them from standings", async () => {
     const app = await appPromise;
     testState.actor = { kind: "user", userId: "00000000-0000-4000-8000-000000000099" };
