@@ -30,20 +30,43 @@ export class RunesRequestError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
 }
 
+export function isNoActiveRun(error: unknown): boolean {
+  return error instanceof RunesRequestError &&
+    error.status === 404 && error.message === "No active Read the Runes round.";
+}
+
 export async function requestRunes(path: string, body?: Record<string, unknown>, method?: string): Promise<RunesSnapshot> {
-  const headers = await buildGameApiRequestHeaders({ "Content-Type": "application/json" });
-  const response = await fetch(path, {
-    method: method ?? (body ? "POST" : "GET"),
-    headers,
-    cache: "no-store",
-    signal: AbortSignal.timeout(12_000),
-    ...(body ? { body: JSON.stringify(body) } : {}),
+  const controller = new AbortController();
+  const timeoutError = new Error("The connection to Read the Runes timed out. Try again.");
+  const timer = setTimeout(() => controller.abort(timeoutError), 12_000);
+  const deadline = new Promise<never>((_, reject) => {
+    controller.signal.addEventListener("abort", () => reject(timeoutError), { once: true });
   });
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new RunesRequestError(typeof payload?.error === "string" ? payload.error : "Read the Runes is unavailable. Try again.", response.status);
+  try {
+    const headers = await Promise.race([
+      buildGameApiRequestHeaders({ "Content-Type": "application/json" }, { retryGuestSession: true }),
+      deadline,
+    ]);
+    const response = await fetch(path, {
+      method: method ?? (body ? "POST" : "GET"),
+      headers,
+      cache: "no-store",
+      signal: controller.signal,
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new RunesRequestError(typeof payload?.error === "string" ? payload.error : "The Read the Runes service is unavailable. Try again.", response.status);
+    }
+    return await response.json() as RunesSnapshot;
+  } catch (cause) {
+    if (controller.signal.aborted) throw timeoutError;
+    if (cause instanceof TypeError) throw new Error("Could not connect to Read the Runes. Check your connection and try again.");
+    if (cause instanceof SyntaxError) throw new Error("The Read the Runes service returned an unexpected response. Try again.");
+    throw cause;
+  } finally {
+    clearTimeout(timer);
   }
-  return response.json() as Promise<RunesSnapshot>;
 }
 
 export async function fetchRunesBoard(signal: AbortSignal): Promise<RunesBoard> {

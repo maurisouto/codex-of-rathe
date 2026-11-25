@@ -49,7 +49,7 @@ describe("guest session initialization", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0]).toEqual([
       "/api/guest/session",
-      { method: "POST", headers: { "x-guest-id": "signed-token" } },
+      { method: "POST", headers: { "x-guest-id": "signed-token" }, signal: expect.any(AbortSignal) },
     ]);
   });
 
@@ -63,7 +63,7 @@ describe("guest session initialization", () => {
 
     await expect(getOrCreateGuestToken()).resolves.toBe("new-token");
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock.mock.calls[0]).toEqual(["/api/guest/session", { method: "POST" }]);
+    expect(fetchMock.mock.calls[0]).toEqual(["/api/guest/session", { method: "POST", signal: expect.any(AbortSignal) }]);
     expect(storage.getItem("gac-guest-token")).toBe("new-token");
     expect(storage.getItem("gac-guest-id")).toBe("server-guest-id");
   });
@@ -84,7 +84,7 @@ describe("guest session initialization", () => {
 
     await expect(getOrCreateGuestToken()).resolves.toBe("recovered-token");
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1]).toEqual(["/api/guest/session", { method: "POST" }]);
+    expect(fetchMock.mock.calls[1]).toEqual(["/api/guest/session", { method: "POST", signal: expect.any(AbortSignal) }]);
     expect(storage.getItem("gac-guest-token")).toBe("recovered-token");
     expect(storage.getItem("gac-guest-id")).toBe("recovered-guest-id");
   });
@@ -137,6 +137,20 @@ describe("guest session initialization", () => {
     expect(error).toHaveBeenCalledWith(
       "[gac] Guest session initialization failed during initial request: HTTP 500.",
     );
+  });
+
+  it("retries a failed session on explicit request and shares the recovered token", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(response(503))
+      .mockResolvedValueOnce(response(201, { guestId: "guest", token: "new-token" }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const { getOrCreateGuestToken } = await loadGuestIdModule(createLocalStorage());
+
+    await expect(getOrCreateGuestToken()).rejects.toThrow("Could not establish guest session.");
+    await expect(getOrCreateGuestToken({ retryGuestSession: true })).resolves.toBe("new-token");
+    await expect(getOrCreateGuestToken()).resolves.toBe("new-token");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("does not retry network failures", async () => {

@@ -61,6 +61,7 @@ export async function getSupabaseAccessTokenForApi(): Promise<{
 /** Builds headers for a game API `fetch` (client-side). */
 export async function buildGameApiRequestHeaders(
   base?: HeadersInit,
+  options?: { retryGuestSession?: boolean },
 ): Promise<Headers> {
   const headers = new Headers(base);
   const { accessToken, hasSession } = await getSupabaseAccessTokenForApi();
@@ -68,6 +69,6 @@ export async function buildGameApiRequestHeaders(
     mergeActorAuthHeaders(headers, "", accessToken);
     return headers;
   }
-  mergeActorAuthHeaders(headers, await getOrCreateGuestToken(), null);
+  mergeActorAuthHeaders(headers, await getOrCreateGuestToken(options), null);
   return headers;
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import Image from "next/image";
-import { requestRunes, RunesRequestError, type RunesSnapshot } from "./runes-client";
+import { isNoActiveRun, requestRunes, RunesRequestError, type RunesSnapshot } from "./runes-client";
 import { selectionAfterRunAction } from "./runes-ui-state";
 import styles from "./runes.module.css";
 
@@ -162,9 +162,11 @@ function RunesHelpSections() {
 }
 
 export function RunesPlay() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [snapshot, setSnapshot] = useState<RunesSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
+  const [restoreAttempt, setRestoreAttempt] = useState(0);
+  const [startingMode, setStartingMode] = useState<"ranked" | "tutorial" | null>(null);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -204,13 +206,16 @@ export function RunesPlay() {
           if (current.status === "loading") setReadyCount(0);
         }
       } catch (cause) {
-        if (active && (!(cause instanceof RunesRequestError) || cause.status !== 404)) setError(cause instanceof Error ? cause.message : "Could not restore the round.");
+        if (active && !isNoActiveRun(cause)) {
+          const reason = cause instanceof Error ? cause.message : "Please try again.";
+          setError(`Could not check for an active round. ${reason}`);
+        }
       } finally {
         if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
-  }, [syncClock]);
+  }, [restoreAttempt, syncClock]);
 
   useEffect(() => {
     if (!snapshot || snapshot.status !== "active" || !clockAnchor.current) return;
@@ -271,6 +276,7 @@ export function RunesPlay() {
   const start = useCallback(async (mode: "ranked" | "tutorial") => {
     if (starting.current || pendingAction) return;
     starting.current = true;
+    setStartingMode(mode);
     setBusy(true);
     setError(null);
     setSelected(null);
@@ -295,9 +301,11 @@ export function RunesPlay() {
       syncClock(next);
       setImageAttempt((value) => value + 1);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "The round could not start.");
+      const activity = mode === "tutorial" ? "the guided tutorial" : "the round";
+      setError(`Could not start ${activity}. ${cause instanceof Error ? cause.message : "Please try again."}`);
     } finally {
       setBusy(false);
+      setStartingMode(null);
       starting.current = false;
     }
   }, [pendingAction, snapshot, syncClock]);
@@ -361,16 +369,25 @@ export function RunesPlay() {
                 <p className={styles.eyebrow}>A trial of Runechant and sight</p>
                 <p className={styles.lead}>Read the verified clues, study each artwork, and make one decisive answer.</p>
                 <div className={styles.actions}>
-                  <button className={styles.button} type="button" disabled={busy || Boolean(pendingAction) || authLoading || loading} onClick={() => void start("ranked")}>{busy ? "Preparing…" : "Start round"}</button>
-                  <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy || Boolean(pendingAction) || loading} onClick={() => void start("tutorial")}>Try the tutorial</button>
+                  <button className={styles.button} type="button" disabled={busy || Boolean(pendingAction) || loading} onClick={() => void start("ranked")}>{startingMode === "ranked" ? "Starting round…" : "Start round"}</button>
+                  <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy || Boolean(pendingAction) || loading} aria-describedby="tutorial-description" onClick={() => void start("tutorial")}>{startingMode === "tutorial" ? "Starting tutorial…" : "Start guided tutorial"}</button>
                 </div>
+                <p id="tutorial-description" className={styles.status}>Practice reading clues with the real Read the Runes card. This guided tutorial leaves your records and statistics unchanged.</p>
+                {loading && <p role="status" className={styles.status}>Checking for an active round…</p>}
+                {error && <div role="alert" className={styles.error}>
+                  <p>{error}</p>
+                  <p>Check again to resume an existing round, or start a new one.</p>
+                  <button type="button" className={`${styles.button} ${styles.buttonSecondary}`} disabled={busy} onClick={() => {
+                    setError(null);
+                    setLoading(true);
+                    setRestoreAttempt((attempt) => attempt + 1);
+                  }}>Retry round check</button>
+                </div>}
               </div>
             </section>
             <RunesHelpSections />
           </>
         )}
-
-        {loading && !snapshot && <p role="status" className={styles.status}>Checking for an active round…</p>}
 
         {snapshot && !result && (
           <section className={`${styles.panel} ${styles.game}`} aria-labelledby="round-heading">
@@ -413,7 +430,7 @@ export function RunesPlay() {
         {ready && <RunesHelpSections />}
 
         {result && snapshot && <RoundResult snapshot={snapshot} replay={(mode) => void start(mode)} reset={reset} authenticated={Boolean(user)} />}
-        {error && <div className={styles.error} role="alert"><p>{error}</p>{pendingAction ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy} onClick={retry}>Retry same action</button> : snapshot?.status === "loading" ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => { loadedArt.current.clear(); setReadyCount(0); setImageAttempt((value) => value + 1); setError(null); }}>Retry artwork</button> : <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => setError(null)}>Dismiss</button>}</div>}
+        {snapshot && error && <div className={styles.error} role="alert"><p>{error}</p>{pendingAction ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" disabled={busy} onClick={retry}>Retry same action</button> : snapshot?.status === "loading" ? <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => { loadedArt.current.clear(); setReadyCount(0); setImageAttempt((value) => value + 1); setError(null); }}>Retry artwork</button> : <button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => setError(null)}>Dismiss</button>}</div>}
       </div>
       <dialog ref={zoomDialog} className={styles.modal} aria-label="Enlarged artwork" onClose={() => { setZoomArt(null); requestAnimationFrame(() => zoomTrigger.current?.focus()); }} onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}><button ref={zoomClose} className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => zoomDialog.current?.close()}>Close</button>{zoomArt && <Image unoptimized width={330} height={276} src={zoomArt} alt="Enlarged artwork crop" />}</dialog>
       <dialog ref={helpDialog} className={styles.helpDialog} aria-labelledby="active-help-title" onClose={() => { setHelpOpen(false); requestAnimationFrame(() => helpTrigger.current?.focus()); }}>
