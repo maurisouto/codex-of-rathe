@@ -82,8 +82,16 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .button:focus-visible,.choice:focus-visible,.zoomButton:focus-visible,.faq summary:focus-visible { outline: 2px solid #e4cdff; outline-offset: 3px; }
 .help { margin-top: 1.2rem; padding: clamp(1rem,3vw,1.5rem); }
 .help h2,.help h3 { margin: 0 0 .5rem; font-family: var(--font-display); }
-.helpGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; }
+.helpIntro { margin: .5rem 0 1rem; color: #e3d5f5; line-height: 1.6; }
+.helpGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1rem; margin: 0; padding: 0; list-style: none; }
+.helpGrid li { min-width: 0; border-top: 1px solid #694d86; padding-top: .75rem; }
+.stepNumber { margin: 0 0 .35rem; color: #d4baff; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .helpGrid p,.faq p { color: #d8cbe7; line-height: 1.6; }
+.helpGrid .stepNumber { color: #d4baff; }
+.helpExample { display: grid; grid-template-columns: minmax(8rem,12rem) minmax(0,1fr); align-items: center; gap: 1rem; margin-top: 1.25rem; border: 1px solid #694d86; border-radius: .75rem; padding: .75rem; background: #10091c99; }
+.helpExample img { display: block; width: 100%; height: auto; aspect-ratio: 330/276; object-fit: cover; border-radius: .45rem; }
+.helpExample h3 { margin: 0 0 .5rem; font-family: var(--font-display); }
+.helpExample p { margin: .35rem 0; color: #d8cbe7; line-height: 1.55; }
 .faq details { border-top: 1px solid #49345e; padding: .8rem 0; }
 .faq summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 650; }
 .game { margin-top: 1.25rem; padding: clamp(.9rem,2.5vw,1.5rem); }
@@ -123,6 +131,9 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
 .helpDialog::backdrop { background:#080510dd; }
 .helpDialog summary { min-height:44px; display:flex; align-items:center; cursor:pointer; }
 .helpDialog details { border-top:1px solid #49345e; padding:.45rem 0; }
+.helpDialog > h3 { margin: 1.5rem 0 .5rem; font-family: var(--font-display); }
+.helpDialog .helpGrid { grid-template-columns: 1fr; gap: .65rem; }
+.helpDialog .helpExample { grid-template-columns: minmax(5rem,8rem) minmax(0,1fr); }
 .error { margin-top:1rem; border:1px solid #d9778c; border-radius:.6rem; padding:.8rem; color:#ffe2e8; }
 .table { width:100%; border-collapse:collapse; }
 .table th,.table td { padding:.7rem .5rem; border-bottom:1px solid #49345e; text-align:left; }
@@ -134,9 +145,13 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   .hero { grid-template-columns:1fr; gap:.7rem; text-align:left; }
   .heroMark { width:min(50vw,8rem); }
   .helpGrid { grid-template-columns:1fr; }
+  .helpExample { grid-template-columns: minmax(5rem,8rem) minmax(0,1fr); }
   .board { grid-template-columns:1fr; }
   .cluePanel { order:2; }
   .gallery { order:1; }
+}
+@media (min-width:761px) and (max-width:960px) {
+  .helpGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media (max-width:380px) {
   .siteHeaderInner { padding-inline:.4rem; }

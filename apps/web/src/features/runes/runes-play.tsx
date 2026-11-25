@@ -25,6 +25,59 @@ function elapsedLabel(ms: number) {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
+const HOW_TO_STEPS = [
+  {
+    title: "Read the first clue",
+    body: "When all four illustrations have loaded, the timer starts and the first clue appears automatically. It counts as a clue used.",
+  },
+  {
+    title: "Follow the trail",
+    body: "Select Read the Runes to reveal one more clue. Each clue stays in the history. Reviewing clues or this guide does not pause the timer.",
+  },
+  {
+    title: "Choose an artwork",
+    body: "Select one of the four illustrations. You can change your selection until you select Confirm answer.",
+  },
+  {
+    title: "Confirm your answer",
+    body: "Select Confirm answer once. A correct choice wins; an incorrect choice ends the round immediately. The last clue still leaves Confirm answer available.",
+  },
+] as const;
+
+const RUNES_FAQ = [
+  ["When does the timer begin?", "After all four illustrations have loaded, the timer starts and the first clue appears automatically. It counts as a clue used."],
+  ["Can I review clues?", "Yes. Every revealed clue stays in the history. Reviewing clues or this guide uses no extra clue, and the timer keeps running."],
+  ["Can I change my answer?", "Yes. Change your selected artwork any time before you select Confirm answer. You can confirm only once."],
+  ["Can I answer after the last clue?", "Yes. Revealing the last clue does not use your confirmation. Confirm answer remains available."],
+  ["How are the four artworks chosen?", "Each round shows four distinct artwork crops with applicable catalog facts. Duplicate or ambiguous artwork is excluded."],
+  ["When is the full card revealed?", "After the round ends. During play, you see artwork crops and clues that have been revealed."],
+  ["How are wins ranked and losses kept?", "Authenticated wins rank by fewest clues, then fastest time; an exact tie shares a rank. Losses are kept in Your archive but do not set a best record."],
+  ["Are guest or practice rounds recorded?", "No. Guest and tutorial rounds do not enter records, stats, or rankings. Sign in before a ranked round to save its result."],
+] as const;
+
+function RunesHowToContent() {
+  return <div data-runes-how-to>
+    <p className={styles.helpIntro}>Four illustrations. A trail of clues. Find the hidden artwork before the round closes.</p>
+    <ol className={styles.helpGrid}>
+      {HOW_TO_STEPS.map(({ title, body }, index) => <li key={title}>
+        <p className={styles.stepNumber}>Step {index + 1}</p>
+        <h3>{title}</h3>
+        <p>{body}</p>
+      </li>)}
+    </ol>
+    <div className={styles.helpExample}>
+      <Image unoptimized src="/runes/crops/pool-01.webp" alt="A warrior carves a glowing rune into the earth." width={330} height={276} />
+      <div><h3>Read the Runes · Example</h3><p><strong>Class</strong> · Runeblade</p><p>This clue applies to the illustrated card. Follow the same trail in a round.</p></div>
+    </div>
+  </div>;
+}
+
+function RunesFaqContent() {
+  return <div data-runes-faq>
+    {RUNES_FAQ.map(([question, answer]) => <details key={question}><summary>{question}</summary><p>{answer}</p></details>)}
+  </div>;
+}
+
 async function runAction(runId: string, pending: PendingAction): Promise<RunesSnapshot> {
   return requestRunes(`/api/runes/runs/${encodeURIComponent(runId)}`, pending, "POST");
 }
@@ -82,22 +135,11 @@ function RunesHelpSections() {
   return <>
     <section className={`${styles.panel} ${styles.help}`} id="how" aria-labelledby="how-title">
       <h2 id="how-title" tabIndex={-1}>How to play</h2>
-      <div className={styles.helpGrid}>
-        <div><h3>Read each clue</h3><p>The first verified clue appears when all four artworks are ready and counts toward your total. Reveal further clues one at a time; every revealed clue remains at hand.</p></div>
-        <div><h3>Choose an artwork</h3><p>Study the four artworks and select one. Your choice may change until you confirm your answer.</p></div>
-        <div><h3>Confirm once</h3><p>A correct answer claims the victory. An incorrect answer ends the round at once. The final clue still leaves one answer to make.</p></div>
-      </div>
+      <RunesHowToContent />
     </section>
     <section className={`${styles.panel} ${styles.help} ${styles.faq}`} id="faq" aria-labelledby="faq-title">
       <h2 id="faq-title" tabIndex={-1}>FAQ</h2>
-      <details><summary>When does the first clue appear?</summary><p>Once all four artwork crops load, the timer begins and the first verified clue is revealed automatically. It counts as a clue used.</p></details>
-      <details><summary>Can I review clues? Does that cost anything?</summary><p>Every revealed clue remains visible. Reviewing clues or help uses no additional clue, though the timer continues to run.</p></details>
-      <details><summary>How many clues can I reveal?</summary><p>The available verified clues depend on the artworks in this round. Revealing the final clue still leaves one answer to confirm.</p></details>
-      <details><summary>What happens after I confirm?</summary><p>A correct answer wins the round; an incorrect answer ends it immediately. Choose carefully: your selection can change until your single confirmation.</p></details>
-      <details><summary>How are the other artworks chosen?</summary><p>Each round draws on four distinct artwork crops and verified catalog facts. Duplicate art and ambiguous candidates are left out.</p></details>
-      <details><summary>How are records ranked?</summary><p>Authenticated wins rank by fewest clues, then fastest time. Exact ties share a rank. Losses are kept in your Runes archive but do not set a best record.</p></details>
-      <details><summary>Can guests play? Which modes are available?</summary><p>Guests can play, but guest rounds are not saved to records, stats, or rankings. Read the Runes currently supports solo rounds and a tutorial; co-op, competitive, and difficulty settings are not available.</p></details>
-      <details><summary>Are card details visible during a round?</summary><p>No. Active play shows artwork crops and revealed clues. The complete card is revealed only after the round ends.</p></details>
+      <RunesFaqContent />
     </section>
   </>;
 }
@@ -358,11 +400,8 @@ export function RunesPlay() {
       <dialog ref={zoomDialog} className={styles.modal} aria-label="Enlarged artwork" onClose={() => { setZoomArt(null); requestAnimationFrame(() => zoomTrigger.current?.focus()); }} onClick={(event) => { if (event.target === event.currentTarget) event.currentTarget.close(); }}><button ref={zoomClose} className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => zoomDialog.current?.close()}>Close</button>{zoomArt && <Image unoptimized width={330} height={276} src={zoomArt} alt="Enlarged artwork crop" />}</dialog>
       <dialog ref={helpDialog} className={styles.helpDialog} aria-labelledby="active-help-title" onClose={() => { setHelpOpen(false); requestAnimationFrame(() => helpTrigger.current?.focus()); }}>
         <div className={styles.gameHeading}><h2 id="active-help-title">How to play &amp; FAQ</h2><button className={`${styles.button} ${styles.buttonSecondary}`} type="button" onClick={() => helpDialog.current?.close()}>Close</button></div>
-        <p>The first clue appears after all four artworks load and counts as used. Reveal more clues one at a time; every revealed clue remains visible.</p>
-        <p>Select an artwork, revise your choice if needed, then confirm once. An incorrect answer ends the round immediately. The final clue still allows an answer.</p>
-        <p>The timer continues while you review clues or this help. Only authenticated wins enter the leaderboard and establish best records. Guest and tutorial rounds are not saved to rankings or stats.</p>
-        <details><summary>How are distractors chosen?</summary><p>Each round uses four distinct artwork crops with verified, applicable catalog clues. Duplicate art and ambiguous candidates are excluded; card names remain hidden until the result.</p></details>
-        <details><summary>Which modes are available?</summary><p>Solo rounds and deterministic tutorial practice are available. Co-op, competitive, and difficulty settings are not currently supported.</p></details>
+        <h3>How to play</h3><RunesHowToContent />
+        <h3>FAQ</h3><RunesFaqContent />
       </dialog>
     </main>
   );
