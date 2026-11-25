@@ -181,7 +181,14 @@ export function snapshotRun(run: RunesRunState, now = Date.now()): RunesSnapshot
 }
 
 export function applyRunesAction(run: RunesRunState, action: RunesAction, now = Date.now()) {
-  if (run.actionSnapshots[action.requestId]) return run.actionSnapshots[action.requestId];
+  const cached = run.actionSnapshots[action.requestId] as Partial<RunesSnapshot> | undefined;
+  if (cached) {
+    // Legacy snapshots predate cluesUsed; preserve their historical count on retry.
+    if (cached.clues && cached.cluesUsed === undefined) {
+      cached.cluesUsed = cached.result?.cluesUsed ?? cached.clues.length;
+    }
+    return cached;
+  }
   if (run.status === "complete" || run.status === "closed") {
     if (action.action === "ack") {
       run.status = "closed";

@@ -121,6 +121,40 @@ describe("Read the Runes API recovery and idempotency", () => {
     expect((await readJson<{ clues: unknown[] }>(retry)).clues).toHaveLength(2);
   });
 
+  it("normalizes persisted legacy ready and reveal retries without changing their historical counts", async () => {
+    const app = await appPromise;
+    const initial = await readJson<Started>(await app.request("/api/runes/runs", { method: "POST", headers, body: JSON.stringify({ mode: "ranked" }) }));
+    const path = `/api/runes/runs/${initial.runId}`;
+    const post = (body: object) => app.request(path, { method: "POST", headers, body: JSON.stringify(body) });
+    const row = testState.runs.get(initial.runId)!;
+    row.state.clueOrder = Array.from({ length: 4 }, (_, index) => ({ category: `fact-${index}`, label: "Fact", value: String(index) }));
+    const ready = { action: "ready", requestId: requestId() };
+    const reveal = { action: "reveal", requestId: requestId(), expectedCluesRevealed: 1 };
+    await post(ready);
+    await post(reveal);
+    await post({ action: "reveal", requestId: requestId(), expectedCluesRevealed: 2 });
+    const persisted = testState.runs.get(initial.runId)!;
+    persisted.state = JSON.parse(JSON.stringify(persisted.state));
+    for (const cached of Object.values(persisted.state.actionSnapshots)) {
+      delete (cached as { cluesUsed?: number }).cluesUsed;
+    }
+    type Snapshot = { cluesUsed: number; clues: unknown[] };
+    for (const [body, count] of [[ready, 1], [reveal, 2]] as const) {
+      const response = await post(body);
+      expect(response.status).toBe(200);
+      const snapshot = await readJson<Snapshot>(response);
+      expect(snapshot.cluesUsed).toBe(count);
+      expect(snapshot.clues).toHaveLength(count);
+      expect(testState.runs.get(initial.runId)!.state.actionSnapshots[body.requestId]).toMatchObject({ cluesUsed: count });
+    }
+    const current = await readJson<Snapshot>(await app.request("/api/runes/runs", { headers }));
+    expect(current.cluesUsed).toBe(3);
+    expect(current.clues).toHaveLength(3);
+    const next = await post({ action: "reveal", requestId: requestId(), expectedCluesRevealed: current.cluesUsed });
+    expect(next.status).toBe(200);
+    expect((await readJson<Snapshot>(next)).cluesUsed).toBe(4);
+  });
+
   it("isolates clue counts and action retries across consecutive acknowledged rounds", async () => {
     const app = await appPromise;
     const readyKey = requestId();
