@@ -93,6 +93,21 @@ function categoryCombinations(categories: readonly string[], count: number): str
   return combinations;
 }
 
+function sample<T>(items: readonly T[], count: number, pick: (end: number) => number): T[] {
+  const selected: T[] = [];
+  for (let attempt = 0; selected.length < count && attempt < count * 4; attempt++) {
+    const item = items[pick(items.length)];
+    if (item !== undefined && !selected.includes(item)) selected.push(item);
+  }
+  if (selected.length < count) {
+    for (const item of items) {
+      if (!selected.includes(item)) selected.push(item);
+      if (selected.length === count) break;
+    }
+  }
+  return selected;
+}
+
 function chooseRoundClues(options: readonly RunesArtwork[], target: RunesArtwork, pick: (end: number) => number): RunesClue[] | null {
   const factsByArtwork = new Map(options.map((artwork) => [artwork.id, answerFacts(artwork)]));
   const targetFacts = factsByArtwork.get(target.id)!;
@@ -121,26 +136,24 @@ function chooseRoundClues(options: readonly RunesArtwork[], target: RunesArtwork
 
 function buildRound(pool: readonly RunesArtwork[], pick: (end: number) => number): { artworks: RunesArtwork[]; targetId: string; clueOrder: RunesClue[] } {
   const factsById = new Map(pool.map((artwork) => [artwork.id, answerFacts(artwork)]));
-  const groups = new Map<string, { categories: string[]; artworks: RunesArtwork[] }>();
+  const groups = new Map<string, { artworks: RunesArtwork[] }>();
   for (const artwork of pool) {
     const categories = [...factsById.get(artwork.id)!.keys()].filter((category) => category !== "card");
     for (const shared of categoryCombinations(categories, ROUND_CLUE_COUNT)) {
       const signature = [...shared].sort().join("\u0000");
-      const group = groups.get(signature) ?? { categories: shared, artworks: [] };
+      const group = groups.get(signature) ?? { artworks: [] };
       group.artworks.push(artwork);
       groups.set(signature, group);
     }
   }
 
   for (const group of shuffle([...groups.values()].filter(({ artworks }) => artworks.length >= 4), pick)) {
-    for (const target of shuffle(group.artworks, pick)) {
-      const targetFacts = factsById.get(target.id)!;
-      const distinguishable = group.artworks.filter((artwork) => artwork.id !== target.id &&
-        group.categories.some((category) => factsById.get(artwork.id)!.get(category)?.value !== targetFacts.get(category)?.value));
-      if (distinguishable.length < 3) continue;
-      const options = [target, ...shuffle(distinguishable, pick).slice(0, 3)];
-      const clueOrder = chooseRoundClues(options, target, pick);
-      if (clueOrder) return { artworks: shuffle(options, pick), targetId: target.id, clueOrder };
+    for (let attempt = 0; attempt < 24; attempt++) {
+      const options = sample(group.artworks, 4, pick);
+      for (const target of options) {
+        const clueOrder = chooseRoundClues(options, target, pick);
+        if (clueOrder) return { artworks: shuffle(options, pick), targetId: target.id, clueOrder };
+      }
     }
   }
   throw new RunesError(503, "No verified Read the Runes round is available right now.");
