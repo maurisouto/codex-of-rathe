@@ -103,42 +103,51 @@ async function main() {
   await setViewport(1280);
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "no-preference" }] }, sessionId);
   await goto("/");
-  await waitFor(cdp, sessionId, "Boolean(document.querySelector('img[alt=\"Read the Runes\"]'))", "Read the Runes hub logo");
-  await waitFor(cdp, sessionId, "(()=>{const image=document.querySelector('img[alt=\"Read the Runes\"]');return Boolean(image?.complete&&image.naturalWidth>0)})()", "loaded Read the Runes hub logo");
-  await cdp.evaluate("(()=>{const element=document.querySelector('img[alt=\"Read the Runes\"]')?.parentElement?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-300,behavior:'instant'})})()", sessionId);
+  await waitFor(cdp, sessionId, "Boolean(document.querySelector('[data-runes-hub-brand]'))", "Read the Runes hub logo");
+  await waitFor(cdp, sessionId, "(()=>{const image=document.querySelector('[data-runes-hub-seal]');return Boolean(image?.complete&&image.naturalWidth>0)})()", "loaded Read the Runes hub seal");
+  await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-300,behavior:'instant'})})()", sessionId);
   await sleep(250);
-  const hubBase = await cdp.evaluate("(()=>{const element=document.querySelector('img[alt=\"Read the Runes\"]')?.parentElement?.parentElement;const style=getComputedStyle(element);const rect=element.getBoundingClientRect();return {x:rect.left,width:rect.width,top:rect.top,translate:style.translate,transition:style.transitionProperty}})()", sessionId);
+  const hubBase = await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const style=getComputedStyle(element);const rect=element.getBoundingClientRect();return {x:rect.left,width:rect.width,top:rect.top,translate:style.translate,transition:style.transitionProperty}})()", sessionId);
   assert.ok(hubBase.width > 0 && hubBase.width < 700, "the hub tile is visible at desktop width");
   await saveScreenshot("hub-desktop");
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: hubBase.x + hubBase.width / 2, y: hubBase.top + 80 }, sessionId);
   await sleep(350);
-  const hubHover = await cdp.evaluate("(()=>{const element=document.querySelector('img[alt=\"Read the Runes\"]')?.parentElement?.parentElement;const style=getComputedStyle(element);return {translate:style.translate,transition:style.transitionProperty,hover:element.matches(':hover')}})()", sessionId);
+  const hubHover = await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const logo=element.querySelector('[data-runes-hub-seal]');const cta=element.querySelector('a');return {translate:getComputedStyle(element).translate,transition:getComputedStyle(element).transitionProperty,hover:element.matches(':hover'),logoTransform:getComputedStyle(logo).transform,logoFilter:getComputedStyle(logo).filter,ctaBackground:getComputedStyle(cta).backgroundImage}})()", sessionId);
   assert.equal(hubHover.hover, true, "the tile receives the desktop hover state");
   assert.match(hubHover.transition, /translate/, "the tile animates its lift");
+  assert.match(hubHover.logoFilter, /drop-shadow/, "hover adds a visible glow to the Codex logo");
+  assert.match(hubHover.ctaBackground, /gradient/, "the Codex CTA has its layered violet background");
+  await saveScreenshot("hub-desktop-hover");
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: hubBase.x + hubBase.width / 2, y: hubBase.top + 80 }, sessionId);
-  const reducedHover = await cdp.evaluate("(()=>{const element=document.querySelector('img[alt=\"Read the Runes\"]')?.parentElement?.parentElement;const style=getComputedStyle(element);return {translate:style.translate,transition:style.transitionProperty}})()", sessionId);
+  const reducedHover = await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const style=getComputedStyle(element),logo=getComputedStyle(element.querySelector('[data-runes-hub-seal]'));return {translate:style.translate,transition:style.transitionProperty,logoTransform:logo.transform,logoTransition:logo.transitionProperty}})()", sessionId);
   assert.equal(reducedHover.translate, "none", "reduced motion removes the tile lift");
   assert.equal(reducedHover.transition, "none", "reduced motion removes the transition override");
+  assert.equal(reducedHover.logoTransform, "none", "reduced motion removes logo scaling");
+  assert.equal(reducedHover.logoTransition, "none", "reduced motion removes logo animation");
   await cdp.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
-  await setViewport(390, 844);
-  await cdp.evaluate("(()=>{const element=document.querySelector('img[alt=\"Read the Runes\"]')?.parentElement?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-180,behavior:'instant'})})()", sessionId);
-  await sleep(150);
-  const hubMobile = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);
-  assert.ok(hubMobile.scroll <= hubMobile.width, "mobile hub has no horizontal overflow");
-  await saveScreenshot("hub-mobile");
-  results.push("hub tile hover state, reduced-motion behavior, and 1280/390px screenshots");
+  for (const width of [320, 390]) {
+    await setViewport(width, 844);
+    await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-180,behavior:'instant'})})()", sessionId);
+    await sleep(150);
+    const hubMobile = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);
+    assert.ok(hubMobile.scroll <= hubMobile.width, `mobile hub has no horizontal overflow at ${width}px`);
+    await saveScreenshot(width === 390 ? "hub-mobile" : "hub-mobile-320");
+  }
+  results.push("hub tile logo hover glow/scale, textured CTA, reduced-motion behavior, and 1280/390/320px screenshots");
 
   await setViewport(1280);
   await goto("/runes");
   await waitFor(cdp, sessionId, "Boolean(document.querySelector('h1 img[alt=\"Read the Runes\"]'))", "setup header logo");
   await saveScreenshot("game-desktop");
-  await setViewport(390, 844);
-  const setupMobile = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);
-  assert.ok(setupMobile.scroll <= setupMobile.width, "mobile game setup has no horizontal overflow");
-  await saveScreenshot("game-mobile");
+  for (const width of [320, 390]) {
+    await setViewport(width, 844);
+    const setupMobile = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);
+    assert.ok(setupMobile.scroll <= setupMobile.width, `mobile game setup has no horizontal overflow at ${width}px`);
+    await saveScreenshot(width === 390 ? "game-mobile" : "game-mobile-320");
+  }
   if (process.env.RUNES_VISUAL_ONLY === "1") {
-    results.push("game setup captured at 1280/390px with no mobile horizontal overflow");
+    results.push("game setup captured at 1280/390/320px with no mobile horizontal overflow");
     console.log(JSON.stringify({ passed: results.length, results }, null, 2));
     browser.socket.close();
     return;

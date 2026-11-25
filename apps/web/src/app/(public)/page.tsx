@@ -216,19 +216,21 @@ export default function HubHomePage() {
               "shadow-[0_0_28px_rgba(199,164,255,0.1),inset_0_1px_0_rgba(228,205,255,0.08)]",
             )}
           >
-            <h3 className="mt-3 flex justify-center">
+            <h3 className={runesStyles.hubBrand} data-runes-hub-brand>
               <Image
-                src="/runes/brand/read-the-runes-horizontal.svg"
-                alt="Read the Runes"
-                width={294}
+                src="/runes/brand/read-the-runes-compact.svg"
+                alt=""
+                width={56}
                 height={56}
-                className={cn(runesStyles.hubLogo, "motion-safe:transition-[filter] motion-safe:duration-300 motion-reduce:transition-none group-hover:drop-shadow-[0_0_16px_rgba(199,164,255,0.38)]")}
+                data-runes-hub-seal
+                className={runesStyles.hubSeal}
               />
+              <span>Read the Runes</span>
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#D8CBE7] sm:text-[0.95rem]">
               Uncover the verified clues, study the artwork, and make one decisive answer.
             </p>
-            <Button asChild size="lg" className="mt-6 w-full border border-[#D6BCFF] bg-[#C7A4FF] text-[#211034] hover:bg-[#D7BEFF] sm:w-auto">
+            <Button asChild variant="ghost" size="lg" className={cn(runesStyles.hubEntryButton, "mt-6 w-full sm:w-auto")}>
               <Link href="/runes" target="_blank" rel="noopener noreferrer">
                 Enter Read the Runes
               </Link>

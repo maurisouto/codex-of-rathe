@@ -23,7 +23,24 @@
 }
 .brandLink { padding: .2rem .1rem; color: #f3ebff; white-space: nowrap; }
 .brandLogo { display: block; width: auto; height: 2.4rem; max-width: 100%; }
-.hubLogo { display: block; width: min(100%,15.5rem); height: auto; }
+.hubBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .65rem;
+  min-height: 3.5rem;
+  margin: .15rem 0 0;
+  color: #f1e6ff;
+  font-family: var(--font-display);
+  font-size: clamp(1.08rem,2vw,1.5rem);
+  font-weight: 500;
+  letter-spacing: .06em;
+  line-height: 1.1;
+  text-align: center;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.hubSeal { display: block; flex: 0 0 auto; width: clamp(3rem,5vw,3.5rem); height: auto; transition: transform 220ms ease, filter 220ms ease; }
 .siteNav { display: flex; flex-wrap: wrap; gap: 0 .25rem; }
 .siteNav a { padding-inline: .5rem; color: #e3d5f5; font-size: .875rem; text-underline-offset: .25em; }
 .siteNav a:hover { background: #50366a70; text-decoration: underline; }
@@ -40,12 +57,12 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   min-height: calc(100svh - 4rem);
   color: #f3ebff;
   background:
-    radial-gradient(ellipse at 50% 4%, #9a72cc24, transparent 32rem),
-    radial-gradient(ellipse at 12% 28%, #70459a20, transparent 34rem),
-    radial-gradient(ellipse at 92% 38%, #51366d1f, transparent 38rem),
-    radial-gradient(ellipse at 48% 100%, #301d4828, transparent 42rem),
-    repeating-linear-gradient(112deg, #d8c4ff03 0 1px, transparent 1px 5px),
-    linear-gradient(160deg,#10091c,#171022 55%,#10091c);
+    radial-gradient(ellipse at 12% 27%, #9868c83d, transparent 34rem),
+    radial-gradient(ellipse at 88% 44%, #7650a43a, transparent 38rem),
+    radial-gradient(ellipse at 50% 0%, #9a72cc3b, transparent 33rem),
+    radial-gradient(ellipse at 51% 100%, #51356844, transparent 44rem),
+    repeating-linear-gradient(112deg, #d8c4ff08 0 1px, transparent 1px 6px),
+    linear-gradient(155deg,#120b20,#1b1128 52%,#10091c);
   font-family: var(--font-sans);
   padding: clamp(1rem,3vw,2.25rem) 1rem 4rem;
 }
@@ -54,8 +71,10 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   z-index: 0;
   inset: 0;
   background:
-    repeating-linear-gradient(135deg, transparent 0 42px, #d6bcff08 43px, transparent 44px 86px),
-    repeating-linear-gradient(45deg, transparent 0 74px, #c7a4ff06 75px, transparent 76px 148px);
+    radial-gradient(ellipse at 14% 20%, #c59af321, transparent 25rem),
+    radial-gradient(ellipse at 88% 44%, #a378d323, transparent 29rem),
+    repeating-linear-gradient(135deg, transparent 0 38px, #d6bcff0d 39px, transparent 40px 78px),
+    repeating-linear-gradient(45deg, transparent 0 66px, #c7a4ff0a 67px, transparent 68px 134px);
   content: "";
   mask-image: radial-gradient(ellipse at 50% 32%, #000 0%, transparent 78%);
   pointer-events: none;
@@ -65,10 +84,12 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   z-index: 0;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 18rem, transparent 0 9.9rem, #d8c4ff10 10rem 10.05rem, transparent 10.12rem 15.8rem, #c7a4ff0c 15.9rem 15.96rem, transparent 16.05rem),
-    repeating-conic-gradient(from 8deg at 50% 18rem, transparent 0deg 13deg, #d8c4ff07 13.2deg 13.55deg, transparent 13.8deg 22deg),
-    radial-gradient(circle at 50% 18rem, #a978d416, transparent 10rem);
-  mask-image: radial-gradient(ellipse at 50% 18rem, #000 0%, transparent 78%);
+    radial-gradient(circle at 50% 19rem, transparent 0 9.9rem, #e4cdff20 10rem 10.06rem, transparent 10.13rem 15.8rem, #c7a4ff18 15.9rem 15.97rem, transparent 16.05rem),
+    repeating-conic-gradient(from 8deg at 50% 19rem, transparent 0deg 13deg, #e4cdff0b 13.2deg 13.6deg, transparent 13.8deg 22deg),
+    radial-gradient(circle at 50% 19rem, #a978d424, transparent 10rem),
+    radial-gradient(circle at 8% 68%, transparent 0 6rem, #c7a4ff12 6.05rem 6.1rem, transparent 6.2rem 10rem, #c7a4ff0c 10.05rem 10.1rem, transparent 10.2rem),
+    radial-gradient(circle at 94% 78%, transparent 0 7rem, #d8c4ff10 7.05rem 7.1rem, transparent 7.2rem 11rem, #c7a4ff0a 11.05rem 11.1rem, transparent 11.2rem);
+  mask-image: radial-gradient(ellipse at 50% 42%, #000 0%, #000 32%, transparent 86%);
   content: "";
   pointer-events: none;
 }
@@ -79,8 +100,8 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   z-index: 0;
   inset: -24%;
   background:
-    radial-gradient(circle at 72% 48%, transparent 0 4.2rem, #d8c4ff10 4.25rem 4.32rem, transparent 4.4rem 6.3rem, #c7a4ff08 6.36rem 6.42rem, transparent 6.5rem),
-    repeating-conic-gradient(from 12deg at 72% 48%, transparent 0deg 15deg, #d8c4ff06 15.2deg 15.6deg, transparent 15.8deg 24deg);
+    radial-gradient(circle at 72% 48%, transparent 0 4.2rem, #d8c4ff14 4.25rem 4.32rem, transparent 4.4rem 6.3rem, #c7a4ff0c 6.36rem 6.42rem, transparent 6.5rem),
+    repeating-conic-gradient(from 12deg at 72% 48%, transparent 0deg 15deg, #d8c4ff09 15.2deg 15.6deg, transparent 15.8deg 24deg);
   content: "";
   pointer-events: none;
 }
@@ -90,10 +111,42 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
     border-color: rgb(199 164 255 / 80%);
     box-shadow: 0 0 34px rgb(199 164 255 / 18%), inset 0 1px 0 rgb(228 205 255 / 12%);
   }
+  .hubTile:hover .hubSeal {
+    transform: scale(1.06);
+  }
 }
+@media (hover: hover) {
+  .hubTile:hover .hubSeal { filter: drop-shadow(0 0 10px rgb(199 164 255 / 85%)) drop-shadow(0 0 24px rgb(199 164 255 / 48%)); }
+  .hubTile:hover .hubBrand span { text-shadow: 0 0 16px rgb(199 164 255 / 65%); }
+}
+.hubTile:focus-within .hubSeal { filter: drop-shadow(0 0 9px rgb(199 164 255 / 70%)); }
 @media (prefers-reduced-motion: reduce) {
   .hubTile { transition: none; }
+  .hubSeal { transition: none; }
+  .hubTile:hover .hubSeal { transform: none; }
 }
+.hubEntryButton {
+  border: 1px solid #e4cdff !important;
+  background:
+    repeating-linear-gradient(135deg, #f6eeff0c 0 1px, transparent 1px 6px),
+    radial-gradient(ellipse at 16% 0%, #d2b2ffb5, transparent 70%),
+    linear-gradient(145deg, #715097, #43295f 58%, #302044) !important;
+  color: #fff8ff !important;
+  box-shadow: inset 0 1px 0 #fff4ff5c, 0 4px 12px #090511a8 !important;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+.hubEntryButton:hover {
+  border-color: #fff2ff !important;
+  background:
+    repeating-linear-gradient(135deg, #fffaff18 0 1px, transparent 1px 6px),
+    radial-gradient(ellipse at 16% 0%, #e2caffd9, transparent 72%),
+    linear-gradient(145deg, #8b69b1, #593a79 58%, #3c2851) !important;
+  box-shadow: inset 0 1px 0 #fffaff82, 0 0 18px #c7a4ff55, 0 5px 14px #090511b8 !important;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .hubEntryButton:hover { transform: translateY(-1px); }
+}
+@media (prefers-reduced-motion: reduce) { .hubEntryButton { transition: none; } }
 .content { position: relative; z-index: 1; width: min(100%, 72rem); margin: 0 auto; }
 .panel { border: 1px solid #694d86; border-radius: 1rem; background: linear-gradient(145deg,#211532ee,#181024f5); box-shadow: 0 18px 42px #08051055; }
 .hero { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: 1.5rem; padding: clamp(1.25rem,4vw,3rem); }
