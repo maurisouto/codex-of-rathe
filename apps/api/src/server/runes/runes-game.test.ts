@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { applyRunesAction, createRunesRun, RunesError, snapshotRun, type RunesArtwork } from "./runes-game";
 import { createCachedRunesPool, createRunesTutorialPool, loadRunesTutorialPoolCached } from "./runes-pool";
 
@@ -104,5 +105,20 @@ describe("Read the Runes game", () => {
       ["mauvrion-skies-red", "CRU145-First"], ["zap-red", "ARC144-First"],
     ]);
     expect(pool.every(({ cropUrl }) => cropUrl.startsWith("data:image/webp;base64,"))).toBe(true);
+  });
+
+  it("pairs each tutorial printing with its validated artwork crop", () => {
+    const pool = loadRunesTutorialPoolCached();
+    const expectedCrops = [
+      ["Rune Flash", "pool-02.webp"],
+      ["Read the Runes", "pool-01.webp"],
+      ["Mauvrion Skies", "pool-03.webp"],
+      ["Zap", "pool-04.webp"],
+    ];
+    for (const [name, file] of expectedCrops) {
+      const artwork = pool.find((item) => item.name === name);
+      const bytes = readFileSync(new URL(`../../../../web/public/runes/crops/${file}`, import.meta.url));
+      expect(artwork?.cropUrl).toBe(`data:image/webp;base64,${bytes.toString("base64")}`);
+    }
   });
 });

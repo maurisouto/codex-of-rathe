@@ -57,7 +57,7 @@ const RUNES_FAQ = [
 
 function RunesHowToContent() {
   return <div data-runes-how-to>
-    <p className={styles.helpIntro}>Four illustrations. A trail of clues. Find the hidden artwork before the round closes.</p>
+    <p className={styles.helpIntro}>Four illustrations. A trail of clues. One answer.</p>
     <ol className={styles.helpGrid}>
       {HOW_TO_STEPS.map(({ title, body }, index) => <li key={title}>
         <p className={styles.stepNumber}>Step {index + 1}</p>
@@ -67,7 +67,7 @@ function RunesHowToContent() {
     </ol>
     <div className={styles.helpExample}>
       <Image unoptimized src="/runes/crops/pool-01.webp" alt="A warrior carves a glowing rune into the earth." width={330} height={276} />
-      <div><h3>Read the Runes · Example</h3><p><strong>Class</strong> · Runeblade</p><p>This clue applies to the illustrated card. Follow the same trail in a round.</p></div>
+      <div><h3>Read the Runes · Example</h3><p><strong>Class</strong> · Runeblade</p><p>Runeblade is one clue on the trail. Follow the runes to uncover the matching artwork.</p></div>
     </div>
   </div>;
 }

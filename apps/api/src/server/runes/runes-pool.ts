@@ -9,12 +9,11 @@ import { loadTomePool } from "@/server/tome/tome-pool";
 import type { RunesArtwork, RunesClue } from "./runes-game";
 
 const tutorialSources = [
-  { cardIdentifier: "rune-flash-red", name: "Rune Flash", print: "ARC100-First", set: "Arcane Rising", image: "ARC100" },
-  { cardIdentifier: "read-the-runes-red", name: "Read the Runes", print: "ARC109-First", set: "Arcane Rising", image: "ARC109" },
-  { cardIdentifier: "mauvrion-skies-red", name: "Mauvrion Skies", print: "CRU145-First", set: "Crucible of War", image: "CRU145" },
-  { cardIdentifier: "zap-red", name: "Zap", print: "ARC144-First", set: "Arcane Rising", image: "ARC144" },
+  { cardIdentifier: "rune-flash-red", name: "Rune Flash", print: "ARC100-First", set: "Arcane Rising", image: "ARC100", crop: "pool-02.webp" },
+  { cardIdentifier: "read-the-runes-red", name: "Read the Runes", print: "ARC109-First", set: "Arcane Rising", image: "ARC109", crop: "pool-01.webp" },
+  { cardIdentifier: "mauvrion-skies-red", name: "Mauvrion Skies", print: "CRU145-First", set: "Crucible of War", image: "CRU145", crop: "pool-03.webp" },
+  { cardIdentifier: "zap-red", name: "Zap", print: "ARC144-First", set: "Arcane Rising", image: "ARC144", crop: "pool-04.webp" },
 ] as const;
-const tutorialFiles = ["pool-01.webp", "pool-02.webp", "pool-03.webp", "pool-04.webp"] as const;
 
 function normalize(value: string) { return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase(); }
 
@@ -90,7 +89,7 @@ export function createRunesTutorialPool(crops: readonly (string | null)[]): Rune
 }
 
 export function loadRunesTutorialPool(): RunesArtwork[] {
-  return createRunesTutorialPool(tutorialFiles.map(cropDataUrl));
+  return createRunesTutorialPool(tutorialSources.map(({ crop }) => cropDataUrl(crop)));
 }
 
 function buildRunesArtworkPool(): RunesArtwork[] {
