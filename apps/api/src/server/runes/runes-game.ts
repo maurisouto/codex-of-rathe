@@ -62,6 +62,7 @@ export class RunesError extends Error {
 }
 
 const MAX_REQUESTS = 64;
+const ROUND_CLUE_COUNT = 4;
 const ACTIVE_TTL_MS = 60 * 60 * 1000;
 const COMPLETE_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -80,32 +81,66 @@ function answerFacts(artwork: RunesArtwork): Map<string, RunesClue> {
   return new Map([...grouped].flatMap(([category, facts]) => facts.length === 1 ? [[category, facts[0]!] as const] : []));
 }
 
-function buildRound(pool: readonly RunesArtwork[], pick: (end: number) => number): { artworks: RunesArtwork[]; targetId: string; clueOrder: RunesClue[] } {
-  const shuffled = shuffle(pool, pick);
-  for (const target of shuffled) {
-    const targetFacts = answerFacts(target);
-    const others = shuffled.filter((item) => item.id !== target.id);
-    const options = [target, ...shuffle(others, pick).slice(0, 3)];
-    if (options.length < 4) continue;
-    const commonCategories = [...targetFacts.keys()].filter((category) => category !== "card" &&
-      options.every((option) => answerFacts(option).has(category)));
-    const remaining = new Set(options.map(({ id }) => id));
-    const clueOrder: RunesClue[] = [];
-    const rankedCategories = shuffle(commonCategories, pick).map((category) => {
-      const clue = targetFacts.get(category)!;
-      const after = new Set(options.filter((option) => answerFacts(option).get(category)?.value === clue.value).map(({ id }) => id));
-      return { category, clue, after };
-    }).sort((a, b) => b.after.size - a.after.size);
-    for (const { clue, after: matching } of rankedCategories) {
-      const after = new Set([...matching].filter((id) => remaining.has(id)));
-      if (after.size === remaining.size) continue;
-      clueOrder.push(clue);
-      remaining.clear();
-      for (const id of after) remaining.add(id);
-      if (remaining.size === 1) break;
+function categoryCombinations(categories: readonly string[], count: number): string[][] {
+  const combinations: string[][] = [];
+  function collect(start: number, selected: string[]) {
+    if (selected.length === count) { combinations.push(selected); return; }
+    for (let index = start; index <= categories.length - (count - selected.length); index++) {
+      collect(index + 1, [...selected, categories[index]!]);
     }
-    if (clueOrder.length && remaining.size === 1 && remaining.has(target.id)) {
-      return { artworks: shuffle(options, pick), targetId: target.id, clueOrder };
+  }
+  collect(0, []);
+  return combinations;
+}
+
+function chooseRoundClues(options: readonly RunesArtwork[], target: RunesArtwork, pick: (end: number) => number): RunesClue[] | null {
+  const factsByArtwork = new Map(options.map((artwork) => [artwork.id, answerFacts(artwork)]));
+  const targetFacts = factsByArtwork.get(target.id)!;
+  const commonCategories = shuffle([...targetFacts.keys()].filter((category) => category !== "card" &&
+    options.every((option) => factsByArtwork.get(option.id)!.has(category))), pick);
+  if (commonCategories.length < ROUND_CLUE_COUNT) return null;
+
+  const ranked = categoryCombinations(commonCategories, ROUND_CLUE_COUNT).flatMap((categories) => {
+    const broadness = new Map(categories.map((category) => [category, options.filter((option) =>
+      factsByArtwork.get(option.id)!.get(category)?.value === targetFacts.get(category)!.value).length]));
+    const order = [...categories].sort((a, b) => broadness.get(b)! - broadness.get(a)!);
+    const remaining = new Set(options.map(({ id }) => id));
+    const clues = order.map((category) => {
+      for (const option of options) {
+        if (!remaining.has(option.id) || factsByArtwork.get(option.id)!.get(category)?.value !== targetFacts.get(category)!.value) remaining.delete(option.id);
+      }
+      return targetFacts.get(category)!;
+    });
+    if (remaining.size !== 1 || !remaining.has(target.id)) return [];
+    const candidateCounts = order.map((category) => broadness.get(category)!);
+    return [{ clues, score: candidateCounts.reduce((sum, count) => sum + count, 0) }];
+  });
+  ranked.sort((a, b) => b.score - a.score);
+  return ranked[0]?.clues ?? null;
+}
+
+function buildRound(pool: readonly RunesArtwork[], pick: (end: number) => number): { artworks: RunesArtwork[]; targetId: string; clueOrder: RunesClue[] } {
+  const factsById = new Map(pool.map((artwork) => [artwork.id, answerFacts(artwork)]));
+  const groups = new Map<string, { categories: string[]; artworks: RunesArtwork[] }>();
+  for (const artwork of pool) {
+    const categories = [...factsById.get(artwork.id)!.keys()].filter((category) => category !== "card");
+    for (const shared of categoryCombinations(categories, ROUND_CLUE_COUNT)) {
+      const signature = [...shared].sort().join("\u0000");
+      const group = groups.get(signature) ?? { categories: shared, artworks: [] };
+      group.artworks.push(artwork);
+      groups.set(signature, group);
+    }
+  }
+
+  for (const group of shuffle([...groups.values()].filter(({ artworks }) => artworks.length >= 4), pick)) {
+    for (const target of shuffle(group.artworks, pick)) {
+      const targetFacts = factsById.get(target.id)!;
+      const distinguishable = group.artworks.filter((artwork) => artwork.id !== target.id &&
+        group.categories.some((category) => factsById.get(artwork.id)!.get(category)?.value !== targetFacts.get(category)?.value));
+      if (distinguishable.length < 3) continue;
+      const options = [target, ...shuffle(distinguishable, pick).slice(0, 3)];
+      const clueOrder = chooseRoundClues(options, target, pick);
+      if (clueOrder) return { artworks: shuffle(options, pick), targetId: target.id, clueOrder };
     }
   }
   throw new RunesError(503, "No verified Read the Runes round is available right now.");
@@ -134,8 +169,8 @@ export function createRunesRun(input: {
     const target = input.pool.find(({ name }) => name === "Read the Runes");
     if (!target) throw new RunesError(503, "The Read the Runes tutorial artwork is unavailable.");
     const options = [...input.pool];
-    const clues = target.facts;
-    if (options.length !== 4 || clues.length !== 2 || clues[0]?.value !== "Runeblade" || clues[1]?.value !== "Max Kostin") {
+    const clues = target.facts.slice(0, ROUND_CLUE_COUNT);
+    if (options.length !== 4 || clues.length !== ROUND_CLUE_COUNT || clues[0]?.value !== "Runeblade" || clues[1]?.value !== "Max Kostin") {
       throw new RunesError(503, "The verified Read the Runes tutorial fixture is unavailable.");
     }
     return {
