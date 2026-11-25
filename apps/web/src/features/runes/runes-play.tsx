@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import Image from "next/image";
 import { requestRunes, RunesRequestError, type RunesSnapshot } from "./runes-client";
@@ -54,6 +54,7 @@ const EXAMPLE_ARTWORKS = [
 ] as const;
 
 function RunesHowToContent() {
+  const exampleClueId = useId();
   return <div data-runes-how-to>
     <p className={styles.helpIntro}>Four illustrations. A trail of clues. One answer.</p>
     <ol className={styles.helpGrid}>
@@ -77,9 +78,9 @@ function RunesHowToContent() {
             </figure>
           </li>)}
         </ol>
-        <aside className={`${styles.panel} ${styles.exampleClue}`} aria-labelledby="example-current-clue">
+        <aside className={`${styles.panel} ${styles.exampleClue}`} aria-labelledby={exampleClueId} data-example-current-clue>
           <p className={styles.stepNumber}>Current clue</p>
-          <h4 id="example-current-clue">Class</h4>
+          <h4 id={exampleClueId}>Class</h4>
           <p className={styles.exampleValue}>Runeblade</p>
           <p>Runeblade is one clue on the trail. Follow the runes to uncover the matching artwork.</p>
         </aside>
