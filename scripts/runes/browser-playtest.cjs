@@ -85,18 +85,65 @@ async function main() {
   const cdp = browser;
   await cdp.send("Page.enable", {}, sessionId);
   await cdp.send("Runtime.enable", {}, sessionId);
+  await cdp.send("DOM.enable", {}, sessionId);
+  await cdp.send("CSS.enable", {}, sessionId);
   await cdp.send("Network.enable", {}, sessionId);
   const results = [];
 
   const setViewport = async (width, height = 850, scale = 1) => cdp.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: scale, mobile: false }, sessionId);
+  const saveScreenshot = async (name) => {
+    const { data } = await cdp.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }, sessionId);
+    fs.writeFileSync(`/tmp/read-the-runes-${name}.png`, Buffer.from(data, "base64"));
+  };
   const goto = async (path) => {
     await cdp.send("Page.navigate", { url: `${appUrl}${path}` }, sessionId);
     await waitFor(cdp, sessionId, "Boolean(document.querySelector('main'))", `route ${path}`);
   };
 
   await setViewport(1280);
+  await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "no-preference" }] }, sessionId);
+  await goto("/");
+  await waitFor(cdp, sessionId, "[...document.querySelectorAll('h3')].some((heading)=>heading.textContent.trim()==='Read the Runes')", "Read the Runes hub tile");
+  await cdp.evaluate("(()=>{const element=[...document.querySelectorAll('h3')].find((heading)=>heading.textContent.trim()==='Read the Runes')?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-300,behavior:'instant'})})()", sessionId);
+  await sleep(250);
+  const hubBase = await cdp.evaluate("(()=>{const element=[...document.querySelectorAll('h3')].find((heading)=>heading.textContent.trim()==='Read the Runes')?.parentElement;const style=getComputedStyle(element);const rect=element.getBoundingClientRect();return {x:rect.left,width:rect.width,top:rect.top,translate:style.translate,transition:style.transitionProperty}})()", sessionId);
+  assert.ok(hubBase.width > 0 && hubBase.width < 700, "the hub tile is visible at desktop width");
+  await saveScreenshot("hub-desktop");
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: hubBase.x + hubBase.width / 2, y: hubBase.top + 80 }, sessionId);
+  await sleep(350);
+  const hubHover = await cdp.evaluate("(()=>{const element=[...document.querySelectorAll('h3')].find((heading)=>heading.textContent.trim()==='Read the Runes')?.parentElement;const style=getComputedStyle(element);return {translate:style.translate,transition:style.transitionProperty,hover:element.matches(':hover')}})()", sessionId);
+  assert.equal(hubHover.hover, true, "the tile receives the desktop hover state");
+  assert.match(hubHover.translate, /-\d/, `desktop hover lifts the Runes tile (${hubHover.translate})`);
+  assert.match(hubHover.transition, /translate/, "the tile animates its lift");
+  await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: hubBase.x + hubBase.width / 2, y: hubBase.top + 80 }, sessionId);
+  const reducedHover = await cdp.evaluate("(()=>{const element=[...document.querySelectorAll('h3')].find((heading)=>heading.textContent.trim()==='Read the Runes')?.parentElement;const style=getComputedStyle(element);return {translate:style.translate,transition:style.transitionProperty}})()", sessionId);
+  assert.equal(reducedHover.translate, "none", "reduced motion removes the tile lift");
+  assert.equal(reducedHover.transition, "none", "reduced motion removes the transition override");
+  await cdp.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+  await setViewport(390, 844);
+  await cdp.evaluate("(()=>{const element=[...document.querySelectorAll('h3')].find((heading)=>heading.textContent.trim()==='Read the Runes')?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-180,behavior:'instant'})})()", sessionId);
+  await sleep(150);
+  const hubMobile = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);
+  assert.ok(hubMobile.scroll <= hubMobile.width, "mobile hub has no horizontal overflow");
+  await saveScreenshot("hub-mobile");
+  results.push("hub tile hover lift, reduced-motion behavior, and 1280/390px screenshots");
+
+  await setViewport(1280);
   await goto("/runes");
   await waitFor(cdp, sessionId, "document.querySelector('h1')?.innerText==='Read the Runes'", "setup header");
+  await saveScreenshot("game-desktop");
+  await setViewport(390, 844);
+  const setupMobile = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);
+  assert.ok(setupMobile.scroll <= setupMobile.width, "mobile game setup has no horizontal overflow");
+  await saveScreenshot("game-mobile");
+  if (process.env.RUNES_VISUAL_ONLY === "1") {
+    results.push("game setup captured at 1280/390px with no mobile horizontal overflow");
+    console.log(JSON.stringify({ passed: results.length, results }, null, 2));
+    browser.socket.close();
+    return;
+  }
+  await setViewport(1280);
   for (const width of [320, 390, 768, 1280]) {
     await setViewport(width, width < 400 ? 780 : 850, width === 320 ? 2 : 1);
     const layout = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth})", sessionId);

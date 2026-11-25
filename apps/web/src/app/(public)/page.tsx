@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
 import chronicleStyles from "@/features/chronicle/chronicle.module.css";
+import runesStyles from "@/features/runes/runes.module.css";
 import tomeStyles from "@/features/tome/tome.module.css";
 import { cn } from "@/lib/utils/cn";
 
@@ -209,11 +210,10 @@ export default function HubHomePage() {
           <Panel
             variant="textured"
             className={cn(
+              runesStyles.hubTile,
               "relative overflow-hidden border border-[#8B68B4]/55 p-6 backdrop-blur-sm sm:p-8",
               "bg-[radial-gradient(ellipse_at_90%_0%,#50366a88,transparent_60%),linear-gradient(155deg,#211532,#130d1f)]",
               "shadow-[0_0_28px_rgba(199,164,255,0.1),inset_0_1px_0_rgba(228,205,255,0.08)]",
-              "motion-safe:transition-[translate,box-shadow,border-color] motion-safe:duration-300 motion-safe:hover:-translate-y-0.5",
-              "hover:border-[#C7A4FF]/80 hover:shadow-[0_0_34px_rgba(199,164,255,0.18),inset_0_1px_0_rgba(228,205,255,0.12)]",
             )}
           >
             <div className="flex justify-center">
