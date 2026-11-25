@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Panel } from "@/components/ui/panel";
 import chronicleCompact from "@/features/chronicle/assets/wayfinders-arc-compact.svg";
 import chronicleStyles from "@/features/chronicle/chronicle.module.css";
+import runesStyles from "@/features/runes/runes.module.css";
 import tomeStyles from "@/features/tome/tome.module.css";
 import { cn } from "@/lib/utils/cn";
 
@@ -202,6 +203,36 @@ export default function HubHomePage() {
             <Button asChild size="lg" variant="outline" className={cn(tomeStyles.entryButton, "mt-6 w-full motion-reduce:transition-none sm:w-auto")}>
               <Link href="/tome" target="_blank" rel="noopener noreferrer">
                 Enter Tome of Fyendal
+              </Link>
+            </Button>
+          </Panel>
+
+          <Panel
+            variant="textured"
+            className={cn(
+              runesStyles.hubTile,
+              "group relative overflow-hidden border border-[#8B68B4]/55 p-6 backdrop-blur-sm sm:p-8",
+              "bg-[radial-gradient(ellipse_at_90%_0%,#50366a88,transparent_60%),linear-gradient(155deg,#211532,#130d1f)]",
+              "shadow-[0_0_28px_rgba(199,164,255,0.1),inset_0_1px_0_rgba(228,205,255,0.08)]",
+            )}
+          >
+            <h3 className={runesStyles.hubBrand} data-runes-hub-brand>
+              <Image
+                src="/runes/brand/read-the-runes-compact.svg"
+                alt=""
+                width={56}
+                height={56}
+                data-runes-hub-seal
+                className={runesStyles.hubSeal}
+              />
+              <span>Read the Runes</span>
+            </h3>
+            <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#D8CBE7] sm:text-[0.95rem]">
+              Uncover the verified clues, study the artwork, and make one decisive answer.
+            </p>
+            <Button asChild variant="ghost" size="lg" className={cn(runesStyles.hubEntryButton, "mt-6 w-full sm:w-auto")}>
+              <Link href="/runes" target="_blank" rel="noopener noreferrer">
+                Enter Read the Runes
               </Link>
             </Button>
           </Panel>
