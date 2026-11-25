@@ -98,6 +98,8 @@ model User {
   fragmentsCardStats        UserFragmentsCardStat[]
   chronicleBestScores       ChronicleBestScore[]
   tomeResults               TomeResult[]
+  runeRuns                  RuneRun[]
+  runeResults               RuneResult[]
 
   @@map("users")
 }
@@ -440,4 +442,35 @@ model TomeResult {
 
   @@index([userId, score])
   @@map("tome_results")
+}
+
+model RuneRun {
+  id        String   @id @db.Uuid
+  ownerKey  String   @map("owner_key")
+  userId    String?  @map("user_id") @db.Uuid
+  status    String
+  state     Json
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  revision  Int      @default(0)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ownerKey, status, expiresAt])
+  @@map("rune_runs")
+}
+
+model RuneResult {
+  runId       String   @id @map("run_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  outcome     String
+  clues       Int
+  elapsedMs   Int      @map("elapsed_ms")
+  completedAt DateTime @default(now()) @map("completed_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, outcome, clues, elapsedMs])
+  @@map("rune_results")
 }
