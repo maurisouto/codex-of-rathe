@@ -100,6 +100,37 @@ async function main() {
     await waitFor(cdp, sessionId, "Boolean(document.querySelector('main'))", `route ${path}`);
   };
 
+  // Hold the guest handshake before the first round lookup, then allow a real retry.
+  const { identifier } = await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `const originalFetch = window.fetch;
+      window.fetch = function(input, options) {
+        if (input === "/api/guest/session" && !window.failFirstGuestCheck) {
+          return new Promise(resolve => {
+            window.failFirstGuestCheck = () => resolve(new Response("{}", {status: 503}));
+          });
+        }
+        return originalFetch.call(this, input, options);
+      };`,
+  }, sessionId);
+  await goto("/runes");
+  await waitFor(cdp, sessionId, "typeof window.failFirstGuestCheck === 'function'", "pending guest session");
+  const hero = "document.querySelector('main h1').closest('section')";
+  const waiting = await cdp.evaluate(`({
+    status: ${hero}.querySelector('[role=status]')?.textContent,
+    disabled: [...${hero}.querySelectorAll('button')].map(button => button.disabled),
+    tutorial: document.getElementById(${hero}.querySelector('button[aria-describedby]').getAttribute('aria-describedby'))?.textContent
+  })`, sessionId);
+  assert.match(waiting.status, /Checking for an active round/);
+  assert.deepEqual(waiting.disabled, [true, true]);
+  assert.match(waiting.tutorial, /real Read the Runes card/);
+  assert.match(waiting.tutorial, /records and statistics/);
+  await cdp.evaluate("window.failFirstGuestCheck()", sessionId);
+  await waitFor(cdp, sessionId, `Boolean(${hero}.querySelector('[role=alert]')) && !${hero}.querySelector('[role=status]')`, "recoverable guest session error in the hero");
+  await clickButton(cdp, sessionId, "Retry round check");
+  await waitFor(cdp, sessionId, `!${hero}.querySelector('[role=alert], [role=status], button:disabled')`, "successful retry enables both round modes");
+  await cdp.send("Page.removeScriptToEvaluateOnNewDocument", { identifier }, sessionId);
+  results.push("guest handshake, hero status, guided tutorial description, session failure and retry");
+
   await setViewport(1280);
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "no-preference" }] }, sessionId);
   await goto("/");
@@ -209,8 +240,8 @@ async function main() {
   }
   results.push("setup How to play and FAQ header anchors");
 
-  await clickButton(cdp, sessionId, "Try the tutorial");
-  await waitFor(cdp, sessionId, "document.querySelectorAll('input[name=\"runes-artwork\"]').length===4 && document.body.innerText.includes('Clues used: 1')", "tutorial ready");
+  await clickButton(cdp, sessionId, "Start guided tutorial");
+  await waitFor(cdp, sessionId, "document.querySelectorAll('[data-runes-active] input:enabled').length===4", "tutorial ready");
   let info = await inspect(cdp, sessionId);
   assert.deepEqual(info.images.map(({ width, height, complete }) => [width, height, complete]), Array.from({ length: 4 }, () => [330, 276, true]));
   const activePayload = await verifyNoAnswerLeak(cdp, sessionId);
@@ -274,28 +305,27 @@ async function main() {
   await clickButton(cdp, sessionId, "Confirm answer");
   await waitFor(cdp, sessionId, "document.getElementById('runes-result-title')?.innerText==='Correct'", "tutorial win");
   let resultText = await cdp.evaluate("document.querySelector('main')?.innerText ?? ''", sessionId);
-  assert.match(resultText, /Practice rounds do not count/);
+  assert.match(resultText, /practice round leaves your records and statistics untouched/);
   assert.match(resultText, /Max Kostin/);
   assert.match(resultText, /Clues revealed/);
   results.push("tutorial correct answer reveals full card and terminal clue review");
 
   await clickButton(cdp, sessionId, "Play again");
-  await waitFor(cdp, sessionId, "document.body.innerText.includes('Clues used: 1')", "tutorial replay ready");
+  await waitFor(cdp, sessionId, "Boolean(document.querySelector('[data-runes-active] input:enabled'))", "tutorial replay ready");
   await cdp.evaluate("document.querySelectorAll('input[name=\"runes-artwork\"]')[0].click()", sessionId);
   await clickButton(cdp, sessionId, "Confirm answer");
   await waitFor(cdp, sessionId, "document.getElementById('runes-result-title')?.innerText==='Incorrect'", "tutorial immediate loss");
   resultText = await cdp.evaluate("document.querySelector('main')?.innerText ?? ''", sessionId);
-  assert.match(resultText, /Your answer was Artwork A/);
-  assert.match(resultText, /The target was Artwork B/);
+  assert.match(resultText, /You chose Artwork A; the hidden artwork was Artwork B/);
   assert.match(resultText, /Read the Runes/);
   assert.match(resultText, /1 clue/);
   assert.match(resultText, /Illustrated by[\s\S]*Max Kostin/);
   results.push("early wrong tutorial answer loses immediately; terminal review shows unused clue and target");
 
   await clickButton(cdp, sessionId, "Back to setup");
-  await waitFor(cdp, sessionId, "document.querySelector('h1')?.innerText==='Read the Runes'", "back to setup after ack");
+  await waitFor(cdp, sessionId, "Boolean(document.querySelector('h1 img[alt=\"Read the Runes\"]'))", "back to setup after ack");
   await clickButton(cdp, sessionId, "Start round");
-  await waitFor(cdp, sessionId, "document.body.innerText.includes('Clues used: 1')", "ranked guest round ready", 30_000);
+  await waitFor(cdp, sessionId, "Boolean(document.querySelector('[data-runes-active] input:enabled'))", "ranked guest round ready", 30_000);
   for (const width of [320, 390, 768, 1280]) {
     await setViewport(width, 780, width === 320 ? 2 : 1);
     const layout = await cdp.evaluate("({width:innerWidth,scroll:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].map(e=>({tag:e.tagName,cls:typeof e.className==='string'?e.className:'',x:Math.round(e.getBoundingClientRect().x),right:Math.round(e.getBoundingClientRect().right),width:Math.round(e.getBoundingClientRect().width),parent:e.parentElement?.tagName+'.'+(typeof e.parentElement?.className==='string'?e.parentElement.className:''),parentX:Math.round(e.parentElement?.getBoundingClientRect().x??0),parentWidth:Math.round(e.parentElement?.getBoundingClientRect().width??0),text:e.innerText?.slice(0,50)})).filter(e=>e.right>innerWidth+1).slice(0,8)})", sessionId);

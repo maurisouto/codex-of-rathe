@@ -27,14 +27,14 @@ function guestSessionFailure(context: string, status: number | null): Error {
 }
 
 async function establishGuestSession(existingToken: string | null): Promise<string> {
-  const request: RequestInit = { method: "POST" };
+  const request: RequestInit = { method: "POST", signal: AbortSignal.timeout(12_000) };
   if (existingToken) request.headers = { "x-guest-id": existingToken };
   const firstResponse = await fetch("/api/guest/session", request);
 
   let response = firstResponse;
   if (firstResponse.status === 401) {
     clearPersistedGuestSession();
-    response = await fetch("/api/guest/session", { method: "POST" });
+    response = await fetch("/api/guest/session", { method: "POST", signal: request.signal });
   }
 
   if (!response.ok) {
@@ -68,12 +68,12 @@ async function establishGuestSession(existingToken: string | null): Promise<stri
 }
 
 /** Gets a server-signed guest token while retaining the stable local guest id for migration. */
-export async function getOrCreateGuestToken(): Promise<string> {
+export async function getOrCreateGuestToken(options?: { retryGuestSession?: boolean }): Promise<string> {
   if (typeof window === "undefined") return "";
   if (guestToken) return guestToken;
   const existing = window.localStorage.getItem(TOKEN_STORAGE_KEY);
-  if (tokenInitializationFailure) throw tokenInitializationFailure;
   if (tokenRequest) return tokenRequest;
+  if (tokenInitializationFailure && !options?.retryGuestSession) throw tokenInitializationFailure;
 
   tokenRequest = establishGuestSession(existing).catch((error: unknown) => {
     const failure = error instanceof Error
