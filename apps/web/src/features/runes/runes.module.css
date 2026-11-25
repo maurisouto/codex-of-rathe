@@ -129,8 +129,8 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   border: 1px solid #e4cdff !important;
   background:
     repeating-linear-gradient(135deg, #f6eeff0c 0 1px, transparent 1px 6px),
-    radial-gradient(ellipse at 16% 0%, #d2b2ffb5, transparent 70%),
-    linear-gradient(145deg, #715097, #43295f 58%, #302044) !important;
+    radial-gradient(ellipse at 16% 0%, #9b78bb75, transparent 70%),
+    linear-gradient(145deg, #62427f, #4d3269 58%, #39264e) !important;
   color: #fff8ff !important;
   box-shadow: inset 0 1px 0 #fff4ff5c, 0 4px 12px #090511a8 !important;
   transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease;
@@ -139,10 +139,11 @@ body:has([data-runes-active]) .siteNav .setupLink { display: inline-flex; }
   border-color: #fff2ff !important;
   background:
     repeating-linear-gradient(135deg, #fffaff18 0 1px, transparent 1px 6px),
-    radial-gradient(ellipse at 16% 0%, #e2caffd9, transparent 72%),
-    linear-gradient(145deg, #8b69b1, #593a79 58%, #3c2851) !important;
+    radial-gradient(ellipse at 16% 0%, #ac87ce0a, transparent 72%),
+    linear-gradient(145deg, #74578f, #5b3e78 58%, #432d5a) !important;
   box-shadow: inset 0 1px 0 #fffaff82, 0 0 18px #c7a4ff55, 0 5px 14px #090511b8 !important;
 }
+.hubEntryButton:focus-visible { outline: 2px solid #fff4ff !important; outline-offset: 3px; }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .hubEntryButton:hover { transform: translateY(-1px); }
 }

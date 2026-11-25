@@ -118,6 +118,18 @@ async function main() {
   assert.match(hubHover.logoFilter, /drop-shadow/, "hover adds a visible glow to the Codex logo");
   assert.match(hubHover.ctaBackground, /gradient/, "the Codex CTA has its layered violet background");
   await saveScreenshot("hub-desktop-hover");
+  const ctaPosition = await cdp.evaluate("(()=>{const r=document.querySelector('[data-runes-hub-brand]')?.parentElement.querySelector('a').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}})()", sessionId);
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: ctaPosition.x, y: ctaPosition.y }, sessionId);
+  await sleep(250);
+  const ctaHover = await cdp.evaluate("(()=>{const cta=document.querySelector('[data-runes-hub-brand]')?.parentElement.querySelector('a'),style=getComputedStyle(cta);return {hover:cta.matches(':hover'),background:style.backgroundImage,color:style.color}})()", sessionId);
+  assert.equal(ctaHover.hover, true, "the Codex CTA enters hover state");
+  assert.match(ctaHover.background, /gradient/, "hover retains the violet CTA texture");
+  await saveScreenshot("hub-desktop-cta-hover");
+  await cdp.evaluate("document.querySelector('[data-runes-hub-brand]')?.parentElement.querySelector('a').focus()", sessionId);
+  const ctaFocus = await cdp.evaluate("(()=>{const cta=document.querySelector('[data-runes-hub-brand]')?.parentElement.querySelector('a'),style=getComputedStyle(cta);return {focused:document.activeElement===cta,outline:style.outlineWidth,outlineColor:style.outlineColor,color:style.color}})()", sessionId);
+  assert.equal(ctaFocus.focused, true, "the Codex CTA receives keyboard focus");
+  assert.equal(ctaFocus.outline, "2px", "the Codex CTA has a visible focus outline");
+  await saveScreenshot("hub-desktop-cta-focus");
   await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "hover", value: "hover" }, { name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
   await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: hubBase.x + hubBase.width / 2, y: hubBase.top + 80 }, sessionId);
   const reducedHover = await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const style=getComputedStyle(element),logo=getComputedStyle(element.querySelector('[data-runes-hub-seal]'));return {translate:style.translate,transition:style.transitionProperty,logoTransform:logo.transform,logoTransition:logo.transitionProperty}})()", sessionId);
@@ -126,6 +138,8 @@ async function main() {
   assert.equal(reducedHover.logoTransform, "none", "reduced motion removes logo scaling");
   assert.equal(reducedHover.logoTransition, "none", "reduced motion removes logo animation");
   await cdp.send("Emulation.setEmulatedMedia", { features: [] }, sessionId);
+  await cdp.evaluate("document.activeElement.blur()", sessionId);
+  await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 0, y: 0 }, sessionId);
   for (const width of [320, 390]) {
     await setViewport(width, 844);
     await cdp.evaluate("(()=>{const element=document.querySelector('[data-runes-hub-brand]')?.parentElement;const rect=element.getBoundingClientRect();scrollTo({top:rect.top+scrollY-180,behavior:'instant'})})()", sessionId);
@@ -134,7 +148,7 @@ async function main() {
     assert.ok(hubMobile.scroll <= hubMobile.width, `mobile hub has no horizontal overflow at ${width}px`);
     await saveScreenshot(width === 390 ? "hub-mobile" : "hub-mobile-320");
   }
-  results.push("hub tile logo hover glow/scale, textured CTA, reduced-motion behavior, and 1280/390/320px screenshots");
+  results.push("hub logo hover glow/scale, violet CTA hover/focus, reduced-motion behavior, and 1280/390/320px screenshots");
 
   await setViewport(1280);
   await goto("/runes");
