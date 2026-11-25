@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img"><title>Read the Runes</title><defs><linearGradient id="silver" x2="0" y2="1"><stop stop-color="#fff6ff"/><stop offset=".52" stop-color="#e8d7ff"/><stop offset="1" stop-color="#b493ed"/></linearGradient>
+<linearGradient id="rim" x1=".08" y1="0" x2=".88" y2="1"><stop stop-color="#a778e4"/><stop offset=".23" stop-color="#f5dbff"/><stop offset=".48" stop-color="#7954ad"/><stop offset=".72" stop-color="#be94f3"/><stop offset="1" stop-color="#e7d5ff"/></linearGradient>
+<radialGradient id="well"><stop stop-color="#3d235e"/><stop offset=".66" stop-color="#1d1030"/><stop offset="1" stop-color="#110b20"/></radialGradient>
+<radialGradient id="aura"><stop offset=".50" stop-color="#ab57f2" stop-opacity="0"/><stop offset=".74" stop-color="#9f55e5" stop-opacity=".26"/><stop offset=".96" stop-color="#8242c0" stop-opacity="0"/></radialGradient></defs><g fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="24" cy="24" r="20" stroke-width="2.8"/>
+      <path d="M24 14l8 10-8 10-8-10z M13 23q7-3 11 2 4-5 11-2 M24 25v5" stroke-width="2.45"/>
+      <path d="M24 2v4m0 36v4M2 24h4m36 0h4" stroke-width="2.6"/>
+      </g></svg>

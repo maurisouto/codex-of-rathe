@@ -211,19 +211,19 @@ export default function HubHomePage() {
             variant="textured"
             className={cn(
               runesStyles.hubTile,
-              "relative overflow-hidden border border-[#8B68B4]/55 p-6 backdrop-blur-sm sm:p-8",
+              "group relative overflow-hidden border border-[#8B68B4]/55 p-6 backdrop-blur-sm sm:p-8",
               "bg-[radial-gradient(ellipse_at_90%_0%,#50366a88,transparent_60%),linear-gradient(155deg,#211532,#130d1f)]",
               "shadow-[0_0_28px_rgba(199,164,255,0.1),inset_0_1px_0_rgba(228,205,255,0.08)]",
             )}
           >
-            <div className="flex justify-center">
-              <svg aria-hidden="true" viewBox="0 0 36 36" className="h-14 w-14 fill-none stroke-[#C7A4FF] stroke-[1.7]">
-                <path d="M6 4 12 10 8 17 16 17 18 25 23 18 30 20 27 12 32 6 23 8 18 2 15 10Z" />
-                <path d="m10 24 6-2m4 7 2-6m6-1 4 4M7 31l4-5" />
-              </svg>
-            </div>
-            <h3 className="font-display mt-3 text-xl font-semibold tracking-[0.04em] text-[#F3EBFF] sm:text-2xl">
-              Read the Runes
+            <h3 className="mt-3 flex justify-center">
+              <Image
+                src="/runes/brand/read-the-runes-horizontal.svg"
+                alt="Read the Runes"
+                width={294}
+                height={56}
+                className={cn(runesStyles.hubLogo, "motion-safe:transition-[filter] motion-safe:duration-300 motion-reduce:transition-none group-hover:drop-shadow-[0_0_16px_rgba(199,164,255,0.38)]")}
+              />
             </h3>
             <p className="mt-3 max-w-prose text-sm leading-relaxed text-[#D8CBE7] sm:text-[0.95rem]">
               Uncover the verified clues, study the artwork, and make one decisive answer.

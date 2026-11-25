@@ -11,15 +11,6 @@ import styles from "./runes.module.css";
 type PendingAction = { action: "ready" | "reveal" | "confirm" | "ack"; requestId: string; artworkId?: string; expectedCluesRevealed?: number };
 const selectionKey = (runId: string) => `runes-selection:${runId}`;
 
-function RuneEmblem({ className }: { className?: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 120 120" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="bevel">
-      <path d="m17 13 24 21-17 27 31 1 7 29 19-25 26 7-12-29 19-23-33 8L60 4 48 39Z" />
-      <path d="m30 89 24-9m16 28 6-25m20-5 15 17M16 112l17-20" />
-    </svg>
-  );
-}
-
 function elapsedLabel(ms: number) {
   const seconds = Math.max(0, Math.floor(ms / 1000));
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -337,10 +328,11 @@ export function RunesPlay() {
         {!snapshot && (
           <>
             <section className={`${styles.panel} ${styles.hero}`}>
-              <RuneEmblem className={styles.heroMark} />
+              <h1 className={styles.heroLogoHeading}>
+                <Image src="/runes/brand/read-the-runes-hero.svg" alt="Read the Runes" width={600} height={445} className={styles.heroLogo} priority />
+              </h1>
               <div>
                 <p className={styles.eyebrow}>A trial of Runechant and sight</p>
-                <h1 className={styles.title}>Read the Runes</h1>
                 <p className={styles.lead}>Read the verified clues, study each artwork, and make one decisive answer.</p>
                 <div className={styles.actions}>
                   <button className={styles.button} type="button" disabled={busy || Boolean(pendingAction) || authLoading || loading} onClick={() => void start("ranked")}>{busy ? "Preparing…" : "Start round"}</button>
